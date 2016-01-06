@@ -1,0 +1,385 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Calling from Java into Smalltalk</H1>
+<P>
+JNIPort has a limited ability to allow Java code to <DFN>callback</DFN> into Smalltalk.
+I must emphasise that the operative word here is <EM>limited</EM>; the feature
+is not suitable for creating a tight integration between the two worlds because:
+</P>
+<UL>
+<LI>It requires much more effort from the programmer than I'm happy with.</LI>
+<LI>It is slow.</LI>
+</UL>
+<P>
+However, it is better than nothing.
+</P>
+<P>
+An example of using it to display the Smalltalk class hierarchy in a Swing
+<CODE class="Java">JTree</CODE> component is <A href="callback-example-1.html">
+here</A>.
+</P>
+
+
+<HR>
+<H2>The Callback Queue</H2>
+<P>
+Java's &ldquo;native&rdquo;, as it were, way of calling out from Java to another
+language is to use &ldquo;native method&rdquo;, which are like normal Java methods
+except that a programmer uses JNI to implement the method body, rather than
+writing it in Java.  Because of the <A href="threading.html">problem with threads</A>
+(which you should read if you are thinking of using callbacks at all), JNIPort
+does not directly support this way of working (although it is used internally
+by JNIPort).  Instead it provides Java classes that maintain a <DFN>queue</DFN>
+of <DFN>Requests</DFN> and <DFN>Notifications</DFN>; you create a request or
+notification (collectively a callback, or callback object) and place it on the
+queue, Dolphin takes requests off the queue and processes them, then returns
+the answer (if any is required) to the caller.   The section on threads talks
+about the implementation of this queue, this section is about how to use it.
+</P>
+<P>
+The section on the problem with threads provides much more detail, but it is
+important to realise that the way that the queue works depends crucially on
+the operating system thread that is using it.  Dolphin executes all Smalltalk
+code on one OS thread, which I call the <DFN>Smalltalk thread</DFN>, and if
+that thread is executing Java code then no Smalltalk code can run at all.
+This has implications for anyone programming with callbacks.
+One consequence is that you have to be careful about deadlocks (the threads
+section has the details), another is that callbacks made from the Smalltalk
+thread are handled differently from those made by other threads.
+</P>
+<P>
+If Java code running on some other thread issues a callback, then the callback
+object is placed on the queue and then that thread either waits for a response,
+or just goes about its other business.  Dolphin, running on the Smalltalk thread,
+will see the request, process it, and (optionally) return an answer to the caller.
+On the other hand, if the Java code was running on the Smalltalk thread in
+the first place, then it places the callback on the queue in the normal way, and
+then calls back (a JNI callback) into Dolphin where all the requests on the
+requests on the queue are handled before control returns to the original caller.
+(So the caller is blocked, as far as Java is concerned, even if it did not want
+to wait for an answer.)
+</P>
+
+
+<HR>
+<H2>Callback Objects</H2>
+<P>
+Callback objects are instances of the Java classes
+<CODE class="Java">org.metagnostic.jniport.DolphinRequest</CODE> and
+<CODE class="Java">.DolphinNotification</CODE>.  They all have a
+<DFN>tag</DFN>, an <DFN>originator</DFN>, and a <DFN>parameter</DFN>.  The
+tag is a Java object (of any class) that uniquely identifies the callback;
+it us used by the callback registry (see below) to find the corresponding
+Smalltalk handler (I tend to use Strings for tags since they are easy to
+identify in logs or the debugger), the tag must not be <CODE class="Java">null</CODE>.
+The originator can be any object, or <CODE class="Java">null</CODE>; it is
+conventionally used to identify the <CODE class="Java">this</CODE> of the
+callback.  The parameter likewise can be any object or <CODE class="Java">null</CODE>,
+and is conventionally used to pass any arguments (possibly as an array)
+to the callback.  JNIPort makes no use of the originator and tag, they are
+passed through to the handler code without interpretation.
+</P>
+<P>
+You supply the tag, originator, and parameter when you create a notification object
+(there are also a bunch of convenience constructors that package
+arguments up into the parameter object in various ways).  You send a notification
+by invoking its <CODE class="Java">send()</CODE> method.  If Dolphin has
+initialised the callback queue then the object will be placed on the queue
+and <CODE class="Java">send()</CODE> will return immediately (subject to
+the above caveat about Java code executing on the Smalltalk thread).  If Dolphin
+has not initialised the queue then it will throw an
+<CODE class="Java">org.metagnostic.jniport.RequestNotHandedException</CODE>.
+</P>
+<P>
+The pattern is similar for requests, the important difference is that
+Dolphin will supply either a return value or will record the fact that
+an exception was thrown from the handler.  The simplest way to get the return
+value is to call the request object's <CODE class="Java">value()</CODE> method.
+It will block until Dolphin has handled the request and then either return
+the <CODE class="Java">Object</CODE> returned by the handler, or will throw
+an exception. The exception can be any of:
+</P>
+<UL>
+<LI><P>
+A <CODE class="Java">RequestNotHandedException</CODE> indicating that
+Dolphin was not listening for requests on the queue.
+</P></LI>
+<LI><P>
+A <CODE class="Java">RequestNotHandedException</CODE> indicating that
+no handler had been set for the callback's tag.
+</P></LI>
+<LI><P>
+Any Java <CODE class="Java">java.lang.Throwable</CODE> that was thrown
+from the Smalltalk handler code (and not caught in the handler).
+</P></LI>
+<LI><P>
+A <CODE class="Java">RequestNotHandedException</CODE> indicating that
+the handler threw an uncaught Smalltalk exception.
+</P></LI>
+<LI><P>
+A <CODE class="Java">RequestNotHandedException</CODE> indicating that
+the handler did not answer a valid Java object or nil (this is really
+a special case of the previous case, but it's worth mentioning explicitly).
+</P></LI>
+</UL>
+<P>
+You can, instead, call the request object's <CODE class="Java">startEvaluation()</CODE>
+method.  This puts the request on the queue but does not wait for an answer
+from Dolphin (unless, as mentioned above, it is running on the Smalltalk thread).
+You can then call <CODE class="Java">value()</CODE> later which will only then
+block until Dolphin has processed the request (it may already have done so, in
+which case there is no blocking).  Or you can use accessor methods like
+<CODE class="Java">getException()</CODE>, and
+<CODE class="Java">getReturnValue()</CODE>.  These also block until
+the answer from Dolphin is available, but they do not throw exceptions.
+</P>
+
+
+<HR>
+<H2>The Callback Registry</H2>
+<P><EM>
+Please note:
+I am still unhappy with the details of how handlers are set and invoked &mdash;
+expect changes in future versions of JNIPort.
+</EM></P>
+<P>
+On the other side of the wall, in Smalltalk space, Java callbacks are
+managed by the <DFN>callback registry</DFN>.  It takes callback objects off
+the queue, and then uses each request's tag to find the corresponding
+<DFN>handler</DFN>.  The handler is an object that understands
+<CODE class="Smalltalk">#value:value:</CODE>.  The callback registry
+looks up the handler in a lookup table keyed by the callback's tag (it's
+an identity comparison of Java objects) and then evaluates the handler
+passing in the callback's originator and parameter as arguments.
+</P>
+<P>
+If the callback was a Notification, then the handler is evaluated in a
+context where all Smalltalk or Java exceptions are trapped and ignored.
+The result of evaluating the handler is also discarded.
+</P>
+<P>
+If the callback was a request then the handler is evaluated in a
+context where all Smalltalk or Java exceptions are trapped and recorded
+in the request object.  If no exception is thrown, then the result of
+evaluating the handler is recorded in the request.  This <EM>must</EM>
+be a Java object or <CODE class="Smalltalk">nil</CODE> (i.e. Java's 
+<CODE class="Java">null</CODE>).
+</P>
+<P>
+Once the handler has returned, JNIPort notifies the callback object
+that it is now &ldquo;complete&rdquo; which wakes up any Java thread
+that was blocked waiting for the result. 
+</P>
+<P>
+You find the callback registry by sending <CODE class="Smalltalk">callbackRegistry</CODE>
+to the JVM object.  Handlers are set by sending
+<CODE class="Smalltalk">#setCallback:handler:</CODE>, and removed with
+<CODE class="Smalltalk">#clearCallback:</CODE>.  There are also some higher-level
+methods in the 'operations' category of class
+<CODE class="Smalltalk">JavaCallbackRegistry</CODE> that are intended to make
+it easier to arrange various kinds of handlers.
+</P>
+
+
+<HR>
+<H2><A name="Events">Java Events</A></H2>
+<P>
+Fortunately Java API's do not often make very much use of coding patterns
+that would require callbacks from Java to Smalltalk; for example Java's
+idiomatic pattern of iteration uses <EM>external</EM> iterators
+(<CODE class="Java">java.util.Iterator</CODE> and
+<CODE class="Java">java.util.Enumeration</CODE>) rather than <EM>internal</EM>
+ones like Smalltalk's idiomatic use of <CODE class="Smalltalk">#do:</CODE>.
+</P>
+<P>
+There is one glaring exception to this tendency: AWT/Swing &ldquo;events&rdquo;.
+Java (since version 1.4) has provided some support for handling events without
+having to code explicit subclasses (like inner classes, for instance), and
+JNIPort builds on that to provide a way to translate Java events into Smalltalk
+events.
+</P>
+<P>
+This part of Java is new enough to warrant a little background explanation.
+</P>
+<P>
+In Java, an event is represented by a method in an interface.  For instance the
+window closing event is represented by the <CODE class="Java">windowClosing()</CODE>
+method in interface <CODE class="Java">java.awt.event.WindowListener</CODE>.
+The window maintains a list of &ldquo;listeners&rdquo; that all implement
+<CODE class="Java">WindowListener</CODE>, and when it closes it calls each
+one's <CODE class="Java">windowClosing()</CODE> method.  Additional data
+about the event is passed as a parameter that is some subclass of 
+<CODE class="Java">java.util.EventObject</CODE>.
+</P>
+<P>
+The normal way that some other object &ldquo;receives&rdquo; the event is that
+it (or one of its inner-class objects) implements the
+<CODE class="Java">WindowListener</CODE> interface, and overrides 
+<CODE class="Java">windowClosing()</CODE> with its own code to handle
+the event.  That works fairly well in most cases, but it does mean that creating
+a handler always requires some kind of subclassing.
+</P>
+<P>
+Java 1.4 introduced a new way of creating handlers that is less inflexible,
+<DFN>Proxies</DFN> and <DFN>Invocation Handlers</DFN>.  A proxy is an adaptor
+that is created to implement some interface by forwarding the event methods
+to an invocation handler.  The invocation handler is a object with the single
+method, <CODE class="Java">invoke()</CODE>, and the proxy calls it for every
+event method (passing parameters that identify the event and its arguments).
+You create a proxy by identifying one or more interfaces that you want it
+to implement, and then the Java runtime creates a stub class on the fly
+that implements the methods of the interfaces by forwarding them to an
+invocation handler.  (I'm simplifying quite a bit, see 
+<CODE class="Java">java.lang.reflect.InvocationHandler</CODE> and
+<CODE class="Java">.Proxy</CODE> for the details).
+</P>
+<P>
+JNIPort uses this to translate Java events into Smalltalk events.
+To observe (in Smalltalk) events generated by some Java object, you first
+find the event method represented as a
+<CODE class="Java">java.lang.reflect.Method</CODE>. Probably the easiest way
+to do this is to look in the <CODE class="Smalltalk">#abstractMethods</CODE>
+list of the <EM>interface's</EM> class static; that will find a 
+<CODE class="Smalltalk">JavaLangReflectMethod</CODE> instance that wraps the
+Java reflection object.
+</P>
+<P>
+Next you ask it for an event forwarder.  JNIPort uses the new Java features
+to create a listener for the event (i.e. an object implementing the interface)
+which forwards the event data (the <CODE class="Java">java.util.EventObject</CODE>)
+to Dolphin.  You create the forwarder by sending
+<CODE class="Smalltalk">#eventForwarder:</CODE>
+to the method object. The parameter is the event Symbol that is to be triggered
+in Smalltalk space.  The alternative form,
+<CODE class="Smalltalk">#asynchronousEventForwarder:</CODE>, is identical except
+that the data is passed in a Notification instead of a Request.
+</P>
+<P>
+A side effect of <CODE class="Smalltalk">#eventForwarder:</CODE> is that it
+sets up a handler in the callback registry for the event callback.  When the
+handler sees the callback, it retrieves the source of the event (which is
+passed as the callback's originator) and the <CODE class="Java">EventObject</CODE>
+(which is passed as the parameter), and triggers the event Symbol off
+the originator.  The <CODE class="Java">EventObject</CODE> is passed as the single
+argument to the event.
+</P>
+<P>
+Please note that the event's source <EM>must</EM> be represented by a 
+<A href="java-base.html#Canonical References">canonical</A> Smalltalk object,
+or else the event will be triggered off a newly created reference to the
+Java object each time, not from whatever one your code is observing.
+</P>
+<P>
+The last step is to add the forwarder object to the list of listeners of
+any Java objects that you are interested in.  Once it has been added (you
+can and should re-use it for all the event sources) it will translate
+the event from Java space into Smalltalk space.
+</P>
+<P>
+For example, say we have references to two Java objects, both of which
+generate the event <CODE class="Java">onPinged()</CODE>, which is defined
+in  interface <CODE class="Java">PingListener</CODE>.  Following Java
+conventions, they will both have a method <CODE class="Java">addPingListener()</CODE>
+that takes an object implementing <CODE class="Java">PingListener</CODE>
+and adds it to their lists of observers.
+</P>
+<P>
+In Smalltalk we can create a
+forwarder for the ping event by finding the right method:
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+	interface := jvm findClass: #PingListener.
+	event := interface abstractMethods detect:
+			[:each | each name = 'onPinged'].
+</CODE></PRE>
+<P>
+and asking it for an event forwarder:
+</P>
+<PRE><CODE class="Smalltalk">	forwarder := event eventForwarder: #pinged:.
+</CODE></PRE>
+<P>
+We can then add the forwarder to both source objects' lists of listeners:
+</P>
+<PRE><CODE class="Smalltalk">	source1 addPingListener_PingListener: forwarder.
+	source2 addPingListener_PingListener: forwarder.
+</CODE></PRE>
+<P>
+Which is enough to forward events into Smalltalk space.  However we
+have to ensure that the Smalltalk events are triggered off the
+right wrapper objects:
+</P>
+<PRE><CODE class="Smalltalk">	source1 beCanonical.
+	source2 beCanonical.
+</CODE></PRE>
+<P>
+before we can start observing the triggered events:
+</P>
+<PRE><CODE class="Smalltalk">	source1
+		when: #pinged:
+		send: #onSource1Pinged:
+		to: "... wherever ...".
+	source2
+		when: #pinged:
+		send: #onSource2Pinged:
+		to: "... wherever ...".
+</CODE></PRE>
+<P>
+One warning: JNIPort uses the method object as the tag to identify the callback,
+which means that you can't have more than one forwarder for the same event.  I can't
+think of any reason why you'd need more than one forwarder (since they all do the
+same thing), but if I ever do then I may remove the restriction.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

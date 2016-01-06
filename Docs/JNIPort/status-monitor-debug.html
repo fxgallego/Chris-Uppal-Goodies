@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The Status Monitor's JVM Debug Page</H1>
+<P>
+The <DFN>Status Page</DFN> is a plug-in page for the <A href="status-monitor.html">Status
+Monitor</A>.  It displays a trace of the debugging output from the Java runtime.
+</P>
+<P>
+<IMG src="status-monitor-debug.gif" alt="Status Monitor showing JVM Debug page">
+</P>
+<P>
+In a Java program launched by the
+<CODE>java.exe</CODE> program, this stream goes to the console along with the Java console streams
+(but it is a separate stream and is handled differently).  The <CODE>java.exe</CODE> program
+has several options that turn on debugging output from different subsystems of the Java
+runtime.  Standard options such as <CODE>-verbose:gc</CODE>, or  <CODE>-verbose:class</CODE>,
+and less standard options like <CODE>-Xcheck:jni</CODE> for SUN JMVs, enable the corresponding
+logging.
+The same debugging options can also be used with JNIPort; they are just added to the list in
+the 'runtimeSettings' (see <A href="setup.html">Configuration</A>).
+</P>
+<P>
+When Java is running from Dolphin there is no console, so the logging would be lost.
+However JNI provides a way of reading the debug stream.  If JNIPort has been configured to
+do so, then this debugging output is captured, and &mdash; if the JVM Debug page is open
+&mdash; displayed. JNIPort will capture the output if 'useVFPrintfHook' is set in the
+'jniPortSettings'.
+</P>
+<P>
+<STRONG>Please note the following warning:</STRONG> much of the runtime's debugging
+output is produced by operating-system threads other than the one where Dolphin
+executes Smalltalk code.  If no precautions are taken then this is very likely
+to lead to deadlocks.  See <A href="threading.html">the problem with threads</A>
+for more discussion of this point.
+</P>
+<P>
+The first precaution is that you should be using the <A href="jni-helper.html">JNI Helper</A>
+library.  This interposes a queue between the thread issuing the debugging data, and Dolphin, so
+that the sending thread does not need to wait for Dolphin to consume the data.  This should
+avoid the problem, and I have found that, with the JNI Helper, I can use the JVM Debug page without
+encountering deadlocks.  But, of course, that may just be luck (for instance I rarely run JNIPort
+with <CODE>-verbose:gc</CODE>).
+</P>
+<P>
+If you need to see the debug output, but are still getting deadlocks despite using JNI Helper
+(or just can't risk ever hitting a deadlock), then you can use an additional feature of JNIPort/JNI
+Helper.  The configuration setting 'jniPortSettings/useVFPrintfRedirection' tells JNIPort
+to divert the debugging information directly to the Windows debug stream without ever
+involving Dolphin.  (Note that 'jniPortSettings/useVFPrintfHook' still has to be set, or JNIPort
+won't install a handler at all.)  The useful (and free) tool, DebugView, from
+<A href="http://www.sysinternals.com/" target=_blank>http://www.sysinternals.com/</A> can be used
+to trace the output.
+</P>
+<P>
+Another reason to use the 'useVFPrintfRedirection' flag is if you have some Java problem that
+is crashing Dolphin &mdash; in which case you wouldn't get the chance to read any error
+messages in the debug page.
+</P>
+<P>
+If the debugging output is not being captured by JNIPort, or it is being redirected to the
+Windows debug stream, then the JVM Debug page will not work, and will just display a warning
+message.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

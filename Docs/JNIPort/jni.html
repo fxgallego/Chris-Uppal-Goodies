@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The Java Native Interface (JNI)</H1>
+<P>
+JNI, the &ldquo;Java Native Interface&rdquo;, is the API by which programs written in C,
+or a similar language, can interact with a Java runtime.  Dolphin's external interfacing
+feature is able to use the JNI API and the whole of JNIPort is built on it.
+</P>
+<P>
+The JNI specification is included in the J2SDK documentation; by all means read it (if you
+don't know it already) but be warned: JNI is one of the most unpleasant APIs I've ever
+worked with.  To be fair, a lot of that is because Sun were in the difficult position of
+specifying a low-level interface to a garbage collected virtual machine <EM>without</EM>
+constraining the implementation of the VM or garbage collector.  On the other hand, I don't
+doubt that much of the difficulty is because the JNI API was rushed and poorly thought-out.
+</P>
+<P>
+I have no intention of writing an introduction to JNI; if you are interested then you
+may like to look at the
+<A href="http://java.sun.com/docs/books/tutorial/native1.1/index.html" target=_blank>
+JNI trail</A> in the
+<A href="http://java.sun.com/docs/books/tutorial/index.html" target=_blank>Java tutorial</A>.
+Sun have also put the JNI book <A href="http://java.sun.com/docs/books/jni" target=_blank>online</A>.
+</P>
+<P>
+The rest of this section assumes that you know both JNI and Dolphin's external interfacing (which
+may be an unrealistic expectation, I admit).
+</P>
+<P>
+The package 'CU JNI' contains <CODE class="Smalltalk">ExternalStructure</CODE> subclasses
+corresponding to the JNI structures:
+</P>
+<UL>
+<LI><CODE class="C">JavaVMInitArgs</CODE></LI>
+<LI><CODE class="C">JavaVMOption</CODE></LI>
+<LI><CODE class="C">JNINativeMethod</CODE></LI>
+<LI><CODE class="C">jvalue</CODE> (and arrays thereof)</LI>
+</UL>
+<P>
+plus the two vtable-like structures:
+</P>
+<UL>
+<LI><CODE class="C">JavaVM</CODE></LI>
+<LI><CODE class="C">JNIEnv</CODE></LI>
+</UL>
+<P>
+which, luckily, are close enough to the layout of a real COM or C++ object for
+Dolphin to be able to handle them without trouble.
+</P>
+<P>
+By the way, don't confuse the <CODE class="C">JavaVM</CODE> structure with the JNIPort JVM
+object; the JVM object is of a different class (<CODE class="Smalltalk">JVM</CODE>!) and
+<EM>contains</EM> a <CODE class="Smalltalk">JavaVM</CODE> object.  The name &ldquo;JavaVM&rdquo;
+is just a poor choice by Sun.
+</P>
+<P>
+The package also contains an <CODE class="Smalltalk">ExternalLibrary</CODE> subclass that
+exposes the functions exported by the Java runtime DLL.  In fact there are several such
+libraries, one for each kind of Java runtime I've tried.  These differ only in the way that
+they locate the Java DLL at runtime.
+</P>
+<P>
+The package also includes <CODE class="Smalltalk">ExternalAddress</CODE> subclasses corresponding
+to the various kinds of opaque pointer used by JNI.  Most importantly the &ldquo;local&rdquo;
+and &ldquo;global&rdquo; references to Java objects.
+</P>
+<P>
+The idea of this package is to provide only a very thin layer around raw JNI.  It is important
+(should you use this layer without the rest of JNIPort) that you realise that it does
+not manage the lifetime of references to Java objects automatically, you have to track references
+yourself and release them explicitly.
+</P>
+<P>
+The package does go a little beyond the raw JNI specification.  It provides a set of subclasses
+of <CODE class="Smalltalk">JNIReference</CODE> corresponding to both the local and global flavours
+of the &ldquo;typed&rdquo; references (<CODE class="C++">jclass</CODE>,
+<CODE class="C++">jarray</CODE>, <CODE class="C++">jstring</CODE>, and so on). It also provides
+type-preserving conversions between local and global references.
+</P>
+<P>
+The central objects at this level are the JNIEnv &ldquo;pointers&rdquo;.  A JNIEnv is like a COM
+object or a pointer to a C++ object; it has no (public) data, just a load of methods (about
+300) that are the meat of the JNI API.  This package exposes the methods as Smalltalk methods.
+The way that JNI works requires the programmer to check for errors/exceptions after each
+step, so the <CODE class="Smalltalk">JNIEnv</CODE> class also has checked versions of all the
+methods.
+</P>
+<P>
+For two simple (Ha!) examples of raw JNI programming using this package, see
+<CODE class="Smalltalk">JNIReference>>toString:</CODE> and
+<CODE class="Smalltalk">JNIReference>>equals:jniEnv:</CODE>.  Of course, the rest of JNIPort
+contains many more examples.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

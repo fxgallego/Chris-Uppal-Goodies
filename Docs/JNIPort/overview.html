@@ -1,0 +1,262 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>JNIPort Overview</H1>
+<P>
+<DFN>JNIPort</DFN> is my name for a collection of packages that allow Java code to be
+invoked from Dolphin Smalltalk.
+</P>
+<P>
+The implementation builds on the Java &ldquo;native&rdquo; interface (called JNI),
+and then provides the superstructure to let you to manipulate Java objects pretty
+much as if they were Smalltalk objects.  The main advantages of this are:
+</P>
+<UL>
+	<LI><P>
+		You can supplement Smalltalk's libraries with the rather extensive
+		Java libraries from Sun and other vendors.
+	</P></LI>
+	<LI><P>
+		You can use the normal, interactive, way of playing with objects and code in
+		workspaces to learn about and prototype Java operations.  JNIPort lets
+		you <EM>talk</EM> to your Java objects, just as you can to Smalltalk
+		objects, rather leaving them hidden away behind a dead wall of syntax
+		compounded by the edit-compile-run fallacy.
+	</P></LI>
+	<LI><P>
+		<EM>And, of course</EM>, you don't have to abandon your legacy Java code
+		when you migrate to a more grown-up language&hellip;
+	</P></LI>
+</UL>
+<P>
+However, please do read the section on the <A href="problems.html">problems and limitations</A>
+of JNIPort.
+</P>
+<P>
+JNIPort works by talking to a &ldquo;real&rdquo; running JVM, rather than by executing
+the Java bytecodes in the Smalltalk VM (which, as I understand it, is how the
+<A href="http://wiki.cs.uiuc.edu/VisualWorks/Frost" target=_blank>Frost</A> project,
+and
+<A href="http://www.exept.de/sites/exept/english/Smalltalk/frame_uebersicht.html" target=_blank>Smalltalk-X</A>
+do it).
+This approach has both advantages and disadvantages.  One of the big advantages is that
+JNIPort is always complete and up to date with the latest Java version.  One downside is
+that the performance advantages of running Java bytecodes on a high-performance JVM can
+be lost in the overhead of crossing the &ldquo;boundary&rdquo; between the Smalltalk VM
+and the Java VM.  A bigger disadvantage is that JNIPort is very exposed to the the JVM,
+which is just a DLL sharing the same process space as Dolphin.  Any peculiarities of the
+way it does things can affect Dolphin; for instance calling java.lang.System.exit() will
+duly cause your Dolphin session to exit!  (So don't do that.)
+</P>
+<P>
+JNIPort comes with a fair amount of documentation.  It is not intended to be exhaustive,
+but is just to help you get oriented with the system.  It's less well structured than I would
+like, but good places to start might be:
+</P>
+<UL>
+<LI><P>
+If you like to start with hands-on examples, then try looking at the <A href="walkthrough.html">
+walkthrough</A> of installing JNIPort, and this <A href="wrapper-example-1.html">example</A>
+of using it to read a ZIP file.
+</P></LI>
+<LI><P>
+If you prefer to start with the concepts, then there are three different views of how the
+system fits together.  A description of the <A href="layers.html">layers</A> of JNIPort;
+a description of the main <A href="players.html">players</A> in the community of JNIPort objects
+and how they interact; and a description of the <A href="java-base.html">features</A> of
+JNIPort and how to use it.
+</P></LI>
+<LI><P>
+If you are going to use ghost classes (which is the highest level of JNIPort and the
+most convenient to use) then you should probably take at least a quick look at the
+<A href="ghost-classes.html">Ghost Classes</A> section.
+</P></LI>
+</UL>
+<P>
+A complete list of the JNIPort documentation is <A href="index.html">here</A>, and
+a few more examples are listed <A href="examples.html">here</A>.
+</P>
+<P>
+The rest of this overview is a very short example of using JNIPort with ghost classes.
+</P>
+<HR>
+<P>
+First we need a connection to the JVM, there are various ways of configuring and starting these,
+but here we'll just assume that one is running already.
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+</CODE></PRE>
+<P>
+The JVM instance is the central point of JNIPort.  It is responsible for starting up and
+shutting down the Java DLL, it also acts as the switchboard through which the various objects
+in the system can find each other.  In particular it is where you go to find a handle on a
+Java class.
+</P>
+<P>
+Each Java class is represented by a unique <DFN>class static</DFN>.  These objects have methods
+corresponding to the class side (&ldquo;static&rdquo;) members of the Java class; they also
+have methods corresponding to the Java classes' constructors.
+<P>
+We'll start with <CODE class="Java">java.lang.System</CODE> since that's a well known class
+with some interesting (well, -ish) static methods:
+</P>
+<PRE><CODE class="Smalltalk">	class := jvm findClass: #'java.lang.System'.
+</CODE></PRE>
+<P>
+That has looked for, and possibly created, the class static that stands for
+<CODE class="Java">java.lang.System</CODE>.
+Now for a couple of method calls, first we get the current time (in milliseconds):
+</P>
+<PRE><CODE class="Smalltalk">	class currentTimeMillis_null.
+		"--> 1045217556089"
+</CODE></PRE>
+<P>
+which is equivalent to the Java code:
+</P>
+<PRE><CODE class="Java">	java.lang.System.currentTimeMillis();
+</CODE></PRE>
+<P>
+only, of course, you are invoking it in a interactive workspace &mdash; which you can't
+do normally in Java.  What has actually happened is that
+<CODE class="Smalltalk">#currentTimeMillis_null</CODE> invoked a <DFN>ghost method</DFN>, which
+is a dynamically-generated method that uses the JNI APIs to forward the call to the
+underlying Java method. The <CODE class="Smalltalk">class</CODE> object is actually
+an instance of an ephemeral class that was generated by JNIPort to hold the forwarding methods
+(I call these ephemeral classes <DFN>ghost classes</DFN>).  You don't have to use
+ghost classes to use JNIPort, but they are convenient.
+</P>
+<P>
+Now we'll call a method with a parameter:
+</P>
+<PRE><CODE class="Smalltalk">	string := class getProperty_String: 'java.vm.vendor'.
+		"--> a java.lang.String(Sun Microsystems Inc.)"
+</CODE></PRE>
+<P>
+This time we called a method that takes a String argument (automatically converted from
+a Smalltalk String) and answers an instance of <CODE class="Java">java.lang.String</CODE>.
+If we wanted to convert the answer into a proper Smalltalk string then we'd send it
+<CODE class="Smalltalk">#asString</CODE>, but for now we'll leave it as a Java object.
+</P>
+<P>
+We can send it messages corresponding to the Java methods in
+<CODE class="Java">java.lang.String</CODE>, e.g:
+</P>
+<PRE><CODE class="Smalltalk">	string substring_int: 3 int: 7.
+		"--> a java.lang.String( Mic)"
+</CODE></PRE>
+<P>
+Notice the way we pass multiple integer parameters.  Again this is using one of
+the automatically generated wrapper methods; you are not limited to using the
+generated methods, you can also set up normal Smalltalk methods.  JNIPort already
+comes with quite a lot of helper methods to give Java Strings (and other aggregates
+like arrays) a Smalltalk face.  For instance Smalltalk-style iteration:
+</P>
+<PRE><CODE class="Smalltalk">	string do: [:each | Transcript print: each; space].
+	Transcript cr.
+</CODE></PRE>
+<P>
+which will write <CODE class="Smalltalk">$S $u $n $  $M $i $c $r $o $s $y $s $t $e
+$m $s $  $I $n $c $. </CODE> to the Transcript.
+</P>
+<P>
+JNIPort knows how to assign Java instances to the correct wrapper class. In the
+case of strings, JNIPort includes a class (called, imaginatively enough,
+<CODE class="Smalltalk">JavaLangString</CODE>) and this is where Smalltalk methods like
+<CODE class="Smalltalk">#do:</CODE> are defined.
+In this example we're using ghost classes, so the real class of our
+<CODE class="Smalltalk">string</CODE> object is a dynamically generated subclass of 
+<CODE class="Smalltalk">JavaLangString</CODE>.
+</P>
+<P>
+We can ask the <CODE class="Smalltalk">string</CODE> for its Smalltalk class:
+</P>
+<PRE><CODE class="Smalltalk">	string isKindOf: JavaLangString.
+		"--> true"
+</CODE></PRE>
+<P>
+Or we can ask it for its class static.
+</P>
+<PRE><CODE class="Smalltalk">	class := string static.
+		"--> a java.lang.String.static(java.lang.String)"
+</CODE></PRE>
+<P>
+The class static, remember, represents the Java class.  Class statics are unique, so:
+</P>
+<PRE><CODE class="Smalltalk">	(jvm findClass: #'java.lang.String') == class.
+		"--> true"
+</CODE></PRE>
+<P>
+The class static is where the constructors live, so we can create a new string, in
+this case an empty string:
+</P>
+<PRE><CODE class="Smalltalk">	class new_null.
+		"--> a java.lang.String()"
+</CODE></PRE>
+<P>
+Or a copy of our original one:
+</P>
+<PRE><CODE class="Smalltalk">	class new_String: string.
+		"--> a java.lang.String(Sun Microsystems Inc.)"
+</CODE></PRE>
+<P>
+Or a copy of a Smalltalk string:
+</P>
+<PRE><CODE class="Smalltalk">	class new_String: 'Hello!'.
+		"--> a java.lang.String(Hello!)"
+</CODE></PRE>
+<P>
+There's lots more to tell, but I want to keep this example short.  See the rest of the JNIPort
+<A href="index.html">documentation</A> for details.
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

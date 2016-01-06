@@ -1,0 +1,403 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>JNIPort Layers</H1>
+<P>
+JNIPort is built in three layers, each in several packages.  The lowest level simply
+uses Dolphin's external interface feature to talk to Java's JNI; the middle layer provides
+Smalltalk-flavoured access to Java objects; the topmost level generates wrapper classes that 
+automatically forward Smalltalk-style messages to the underlying Java objects.
+</P>
+<P>
+Here's a rough diagram of the components and how they are layered.  The picture is not to-scale.
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<TBODY>
+<TR>
+	<TD width="6%">
+		<P align="center">3</P>
+		<P></P>
+		<P></P>
+	</TD>
+	<TD width="32%" colspan=3>
+		<P align="center"><A href="#SGW">Statically-generated wrappers</A></P>
+	</TD>
+	<TD width="32%">
+		<P align="center"><A href="#DGW">Dynamically-generated wrappers</A></P>
+	</TD>
+	<TD width="30%" colspan=3>
+		<P align="center"><A href="#SM">Status monitoring</A></P>
+	</TD>
+</TR>
+<TR>
+	<TD width="6%">
+		<P align="center">2</P>
+		<P></P>
+		<P></P>
+	</TD>
+	<TD width="72%" colspan=5>
+		<P align="center">
+			<A href="#JB">Java Base</A> and <A href="#AW">standard wrappers</A>
+		</P>
+	</TD>
+	<TD width="22%" colspan=2>
+		<P align="center"><A href="#JC">Callback handling</A></P>
+	</TD>
+</TR>
+<TR>
+	<TD width="6%">
+		<P align="center">1</P>
+		<P></P>
+		<P></P>
+	</TD>
+	<TD width="12%">
+		<P align="center"><A href="#QUTF">Quasi-UTF8</A></P>
+	</TD>
+	<TD width="14%">
+		<P align="center"><A href="#HDLL">Helper DLL</A></P>
+	</TD>
+	<TD width="54%" colspan=4>
+		<P align="center"><A href="#JNI">JNI Interface</A></P>
+	</TD>
+	<TD width="14%">
+		<P align="center"><A href="#JCC">Java callback classes</A></P>
+	</TD>
+</TR>
+<TR>
+	<TD width="6%">
+		<P align="center">0</P>
+	</TD>
+	<TD width="94%" colspan=7>
+		<P align="center"><A href="#JRT">Java runtime; JVM &amp; JNI libraries</A></P>
+	</TD>
+</TR>
+</TABLE>
+<P>
+The rest of this section gives a short overview of each of the layers, and pointers to the
+more detailed documentation on each.  It may be helpful as a kind of map, both
+of JNIPort and of its documentation.
+</P>
+<P>
+For a different view of how the bits fit together, you might prefer the description
+of the main <A href="players.html">players</A> in the community of objects that form
+JNIPort.
+</P>
+
+<HR>
+<H2><A name="JRT">Layer 0: Java Runtime</A></H2>
+<P>
+This is really the bottom layer. This is the software provided by Sun, or whoever
+implemented the JVM you are using.
+</P>
+<P>
+For some discussion of what JVMs are supported, see <A href="jvms.html">JVMs</a>.
+</P>
+
+
+<HR>
+<H2>Layer 1: JNI etc.</H2>
+<P>
+This layer is all low-level stuff.  The things we need to have in order
+to talk to the JVM, but which we don't want to think or know about when
+we're programming.  Down here in the muck and mire we have raw pointers,
+objects that don't clean up after themselves, explicit memory allocation,
+and all the other things that one hopes to avoid by programming in Smalltalk.
+</P>
+
+<H3><A name="JNI">1.1 &mdash; JNI Interface</A></H3>
+<P>
+The lowest layer of JNIPort, in package 'CU JNI', is just a simple wrapper
+around the raw JNI interface.  Unless you know JNI <EM>and</EM> happen to be a
+masochist then this will be of very little interest to you.  This layer sits
+directly above the Java runtime environment (i.e. the running JVM) and talks to
+it via JNI.  JNI is a very low-level API, designed primarily for hairy-arsed
+C-programmers; it works, but is certainly not pretty.
+</P>
+<P>
+For more details see <A href="jni.html">JNI</A>.
+</P>
+
+<H3><A name="HDLL">1.2 &mdash; JNI Helper DLL</A></H3>
+<P>
+At the same level is an optional package, 'CU JNI Helper' that uses a small additional
+DLL to provide workarounds for a couple of problems caused by the mismatch between JNI's
+and Dolphin's threading models.  This package is optional in that the rest of JNIPort
+<EM>can</EM> be used without it; however, layers higher than the raw JNI wrapper will
+work better (i.e. deadlock less) if it is present too.
+</P>
+<P>
+For more details see <A href="jni-helper.html">JNI-Helper</A> and
+<A href="threading.html">the problem with threads</A>.
+</P>
+
+<H3><A name="JCC">1.3 &mdash; Java Callback Classes</A></H3>
+<P>
+There are also some helper classes written in Java which likewise are
+workarounds for problems caused by the mismatch between JNI's and Dolphin's
+threading models.  These classes are necessary to allow callbacks from Java to
+Smalltalk, but are not otherwise needed.
+</P>
+<P>
+For more details see <A href="threading.html">the problem with threads</A>
+and <A href="callbacks.html">Callbacks</A>.
+</P>
+
+<H3><A name="QUTF">1.4 &mdash; Quasi-UTF8</A></H3>
+<P>
+All String data that passes in/out of the JVM uses a weird encoding of 16-bit
+characters as 8-bit bytes.  The encoding is in some ways similar to UTF8, but
+is <EM>definitely not </EM> the same.  For some reason, all the Sun documentation
+tends to call it UTF8, which is irritating as well as confusing.  The
+'CU Java Quasi-UTF8' package provides the relevant encoders/decoders.
+</P>
+
+
+<HR>
+<H2>Layer 2: Basic Features</H2>
+<P>
+Layer two puts a level of sanity around the raw access to JNI.  Although useable, it is still
+quite inconvenient, since you still have to type in all the tedious stuff about method
+parameter types, and so on.  This layer exists primarily in order to allow the bootstrapping
+of the much handier, automatic, facilities at level three.  However most of the important concepts
+you will need to use JNIPort &mdash; such as <EM>class statics</EM> &mdash; are defined at
+this level, so you will need to know about it even if you are using the level three APIs.
+</P>
+
+<H3><A name="JB">2.1 &mdash; Java Base</A></H3>
+<P>
+The lowest-level API that I'd expect anyone sane (who wanted to <EM>stay</EM> sane)
+to  program against is in package 'CU Java Base'.  This wraps the raw JNI references
+in proper Smalltalk objects.  It provides:
+</P>
+<UL compact>
+	<LI><P>
+		A framework within which Java objects are automatically wrapped in
+		Smalltalk objects of the most appropriate class.  An important feature of
+		this mapping is that Java classes are also wrapped in Smalltalk objects
+		(class-like, but not inheriting from Class or Behaviour), and this is
+		where the &ldquo;static&rdquo; Java methods, constructors, and fields
+		are presented.
+	</P></LI>
+	<LI><P>
+		A convenient (as compared with using JNI) way of calling Java methods
+		and accessing fields in Java objects.  These features are fairly low-level,
+		and are intended mainly as a foundation to build upon.
+	</P></LI>
+	<LI><P>
+		Automatic lifetime management of JNI &ldquo;references&rdquo;.
+	</P></LI>
+	<LI><P>
+		Simple access to Java's reflective features.
+	</P></LI>
+	<LI><P>
+		A set of classes for wrapping some common or important Java classes.
+		These provide Smalltalk-style methods that are mapped onto the underlying
+		Java methods.
+	</P></LI>
+</UL>
+<P>
+The idea is that rather than use the features of Java Base to call methods of Java objects
+directly (which is messy, repetitive, and error-prone), it's better to write your own
+Smalltalk-style methods that call the raw Java Base facilities.  Usually you create
+a specific wrapper class (or two if you want to wrap static Java methods too) for each
+Java class (or interface) that you are interested in.  You write whatever wrapper methods
+you think you'll need. Then the JNIPort runtime will arrange to wrap all references to Java
+objects of that class (and its subclasses) in instances of your own class.
+</P>
+<P>
+The features in level three provide a way of automating this process.
+</P>
+<P>
+This level does include a fair selection of pre-defined wrappers for commonly occurring Java
+classes and interfaces.
+</P>
+<P>
+For a more complete description of how it works and how to use it, see
+<A href="java-base.html">Java Base</A>, and also these
+<A href="java-base-example-1.html">examples</A>.
+</P>
+
+<H3><A name="AW">2.2 &mdash; Additional Wrappers</A></H3>
+<P>
+<P>At about the same level, another package, 'CU Java Additional Wrappers', has
+some more pre-defined wrappers for other common Java classes and interfaces, such
+as the Java2 Collections.
+</P>
+<P>
+These are split out from 'CU Java Base' only because they aren't <EM>necessary</EM>
+in order to use Java from Smalltalk &mdash; especially if you are using dynamic
+wrapper generation.
+<P>
+For more details see <A href="additional-wrappers.html">Additional Wrappers</A>
+</P>
+
+<H3><A name="JC">2.3 &mdash; Java Callbacks</A></H3>
+<P>
+The 'CU Java Callbacks' package supplements the Java Base with the ability
+to call back from Java into Smalltalk.
+</P>
+<P>
+Since Java has no notion of a function pointer, what we really mean by callbacks is
+that JNI allows you to define the implementation of Java's &ldquo;native methods&rdquo;.
+JNIPort gives you an <EM>extremely limited</EM> ability to specify the implementation in
+Smalltalk.
+</P>
+<P>
+The main reason for the limitation is <A href="threading.html">the problem with threads</A>.
+</P>
+<P>
+In practice you are more-or-less forced to make use of the Java callback helper
+classes.  These define an interface for sending <DFN>requests</DFN> (which wait for
+a reply), or <DFN>notifications</DFN> (which don't), from Java into Smalltalk.
+These features are implemented on top of the raw callbacks and shield you (mostly)
+from the limitations.
+</P>
+<P>
+For more information on how to use Java callbacks, request, and notifications, not to
+mention their inherent problems, see <A href="callbacks.html">Callbacks</A>.
+</P>
+
+
+<HR>
+<H2>Layer 3: Top-level stuff</H2>
+<P>
+This level contains the stuff that you'll probably use most.  It provides convenient
+ways to generate Smalltalk wrapper classes for Smalltalk classes.  It is also the
+layer where the GUI tools live (a somewhat arbitrary placement, but they've got to
+fit in <EM>somewhere</EM>).
+</P>
+<P>
+However, do remember that this layer still makes very heavy use of the concepts from the
+Java Base level (layer two), so you'll need to understand that before you can make best
+use of these features.
+</P>
+
+<H3><A name="SGW">3.1 &mdash; Static Wrappers</A></H3>
+<P>
+Since Java has reflection it's natural to use it to generate Smalltalk wrapper
+classes automatically; in fact JNIPort includes two ways to do that.
+</P>
+<P>
+One way is statically, via the 'CU Java Wrapper Generation' package.  This provides
+facilities for generating a class- or instance-side wrapper for a Java class or interface.
+</P>
+<P>
+This part of JNIPort is a framework that uses introspection to ask a Java class what methods,
+fields, and constructors it has; the framework then uses that to generate Smalltalk methods
+that will call those methods or act as accessors for the fields.  The JNIPort runtime
+automatically wraps references to Java objects in the most specific available wrapper class
+(just as it would for manually created wrapper classes written using the Java Base features
+in layer two).
+</P>
+<P>
+Since, in Java, the signature of a method is part of its &ldquo;name&rdquo;, and overloading
+of method names is, in fact, very common in Java libraries, we have to make the (Smalltalk)
+names of the wrapper methods reflect the parameter types in some way.  The automatically
+generated wrappers use a specific <A href="method-names.html">naming scheme</A>, which is an
+attempt (not always successful) to find a good compromise between frequent ambiguity and
+insufferable verbosity.
+</P>
+<P>
+For a more complete description see <A href="wrapper-classes.html">Static Wrappers</A>
+and also these <A href="wrapper-example-1.html">examples</A>.
+</P>
+<P>
+There is GUI tool to help with generating these wrapper classes; see the
+<A href="wrapper-wizard.html">Wrapper Wizard</A>.
+</P>
+
+
+<H3><A name="DGW">3.2 &mdash; Dynamic Wrappers (Ghost classes)</A></H3>
+<P>
+The other way to generate wrapper classes is to do it dynamically, and on demand.
+The approach I've chosen to take is to use what I call <DFN>ghost classes</DFN>.
+Ghost classes are dynamically generated ephemeral classes.  They do not appear in the
+&ldquo;official&rdquo; class hierarchy (so you don't see them in the browsers) and
+they only live for as long as the connection to a JVM.  Ghost classes use exactly the
+same <A href="method-names.html">naming scheme</A> as statically generated wrappers.
+</P>
+<P>
+Using ghost classes is the highest level of JNIPort, and is my preferred way of driving
+Java from Smalltalk.
+<P>
+The ghost class implementation is in the package 'CU Java Ghost Classes'.
+</P>
+<P>
+More details about ghost classes and some discussion the relative benefits of static
+and dynamic wrappers is at <A href="ghost-classes.html">Ghost Classes</A>. Also there
+are these <A href="wrapper-example-1.html">examples</A>.
+</P>
+
+<H3><A name="SM">3.3 &mdash; Status Monitoring</A></H3>
+<P>
+The Status Monitor is a GUI tool for starting, stopping, and monitoring the status of
+running JVMs.  Among other things, it can be configured to display:
+</P>
+<UL>
+<LI>A class tree of all the known Java classes.</LI>
+<LI>A histogram of how many references to Java objects are created/released per second.</LI>
+<LI>A histogram of Java callbacks made per second.</LI>
+<LI>A trace of the JVM's debugging stream.</LI>
+<LI>A trace of the text sent to the Java console streams, java.lang.System.out and
+java.lang.System.err.</LI>
+</UL>
+<P>
+It is also the entry-point for the GUI to generating static wrapper classes.
+</P>
+<P>
+See the <A href="status-monitor.html">Status Monitor</A> and
+<A href="wrapper-wizard.html">Wrapper Wizard</A>.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

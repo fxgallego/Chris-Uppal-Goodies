@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The Wrapper Wizard</H1>
+<P>
+The <DFN>Wrapper Wizard</DFN> is a GUI tool to help create <A href="wrapper-classes.html">
+wrapper classes</A>.
+</P>
+<P>
+It understands the conventions that JNIPort uses for such classes, and knows how to
+use Java reflection to generate forwarding methods and accessors for Java members.
+</P>
+<HR>
+<P>
+The tool is launched from the <A href="status-monitor-classes.html">classes page</A> of
+the <A href="status-monitor.html">Status Monitor</A>.  Select the target Java class
+or interface from the class tree (if the class is not already loaded then you can
+use the 'Find/Load Java class' command from the class menu).  From here you can elect
+to generate instance-side or class-side wrapper methods:
+</P>
+<P>
+<IMG src="wrapper-wizard-0.gif" alt="Selecting Wrapper Wizard from class page's menu">
+</P>
+<HR>
+<P>
+The wizard has three stages.  In the first you select the target class to which the
+wrapper methods will be added.  This should be a subclass of
+<CODE class="Smalltalk">JavaLangObject</CODE> if you are wrapping the instance-side of
+a Java class or a subclass of <CODE class="Smalltalk">StaticJavaLangObject</CODE> for
+the class side.  If you are creating wrappers for an interface then you should be
+subclassing either <CODE class="Smalltalk">JavaInterfaceInstance</CODE> or
+<CODE class="Smalltalk">JavaInterfaceStatic</CODE> respectively.  The Wizard will
+attempt to find the &ldquo;best&rdquo; Smalltalk class to start with, but unless
+you are re-generating the wrappers of an already wrapped class, then you will need
+to create a new subclass of it.  You can create the class, if you wish, from the
+context menu of the class selector pane, or by using the 'New&hellip;' button.
+ The 'Next' button is not enabled unless you have selected a suitable target
+class that either already wraps the Java class, or which has not yet been declared to
+be a wrapper class.
+</P>
+<P>
+<IMG src="wrapper-wizard-1.gif" alt="Selecting target class in Wrapper Wizard">
+</P>
+<P>
+In this image, we are about to generate instance-side wrapper methods for the Java class
+<CODE class="Java">java.net.URL</CODE>, and add them to the Smalltalk class 
+<CODE class="Smalltalk">JavaNetURL</CODE>.
+</P>
+<HR>
+<P>
+In stage 2 you select which of the Java class's members will be exposed via wrappers.
+By default wrappers are generated for all the public methods, fields, and constructors.
+</P>
+<P>
+<IMG src="wrapper-wizard-2.gif" alt="Selecting members to wrap in Wrapper Wizard">
+</P>
+<P>
+In this image, we have not changed the default.  The tabs at the bottom of the page list the
+members for which wrappers will be generated given the current settings.  In this case
+the 'Constructors' tab is available, even though we are generating instance-side methods;
+that is a harmless deficiency in the tool's user-interface that I'll quite probably never
+bother to fix.  The 'Others' tab shows the additional &ldquo;housekeeping&rdquo; methods that
+the Wizard will generate in order to allow JNIPort to recognise that the target class is
+to be used as a wrapper.
+</P>
+<HR>
+<P>
+The final page shows a list of all the methods that are to be generated.  I intend that
+a later version will allow you to &ldquo;fine-tune&rdquo; the selection at this point,
+but the current version does not have that capability.
+</P>
+<P>
+<IMG src="wrapper-wizard-3.gif" alt="Confirming generated methods in Wrapper Wizard">
+</P>
+<P>
+This image shows all the methods that will be generated.  Note that the housekeeping
+methods will be added to the class side of <CODE class="Smalltalk">JavaNetURL</CODE>.
+</P>
+<P>
+It is not illustrated here, but if any of the proposed methods would overwrite an existing
+method, then the first column will show a warning symbol.  If the pre-existing method
+was is the '**auto generated**' category, then that would just be a warning (the Wizard
+puts all its generated methods into that category, so it assumes that it's OK to overwrite
+methods that it has generated itself).  If the method is not in that category then the Wizard
+will show an error icon, and will not overwrite it.
+</P>
+<P>
+The tick box selects whether the new wrapper class should be registered with the current
+class registry.  If so then it will be used for the rest of the session, otherwise it will
+not take effect until you re-start JNIPort.  This option will be disabled if you are using
+ghost-classes or if the class is already registered.
+</P>
+<P>
+If you click 'Finish' then the methods will be added to the target class.  A popup will
+confirm that the action is complete.  If there were any errors (say, because there was
+a pre-existing method that should not be overwritten) then the popup will say so, and
+a longer description will be written to the transcript.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

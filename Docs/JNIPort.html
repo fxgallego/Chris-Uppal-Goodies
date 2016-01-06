@@ -1,0 +1,388 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><A href="index.html">Goodies</A></P>
+		<P><strong>JNIPort</strong></P>
+		<P><A href="ZKit.html">Z-Kit</A></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><A href="SpaceBreakdown.html">Space Breakdown</A></P>
+		<P><A href="FMB.html">F.M.B.</A></P>
+		<P><A href="Ghoul.html">Ghoul</A></P>
+		<P><A href="Miscellanea.html">Miscellanea</A></P>
+		<P><A href="Experiments.html">Experiments</A></P>
+		<P><A href="Changes.html">Changes</A></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H2>Introduction</H2>
+<P>
+(This page is just an introduction, the complete documentation for JNIPort
+is <A href="JNIPort/index.html">here</A>.)
+</P>
+<P>
+JNIPort allows Java code to be invoked from Dolphin Smalltalk.  It acts as a bridge
+between the world of Smalltalk objects and a JVM where Java code is executing.
+</P>
+<P>
+What's the point?  Well, with JNIPort you can:
+</P>
+<UL>
+	<LI>
+		Supplement Smalltalk's libraries with the rather extensive Java libraries from
+		Sun and other vendors.
+	</LI>
+	<LI>
+		Use the normal (to a Smalltalker) interactive way of playing with objects
+		and code in workspaces to learn about and prototype Java operations.
+	</LI>
+	<LI>
+		Continue to use your legacy Java code as you migrate to a more grown-up
+		language&hellip;
+	</LI>
+</UL>
+<HR>
+<P><strong>
+This version of JNIPort is known not to work with the recently released Dolphin 6.
+</strong></P>
+<HR>
+<P>
+JNIPort is very roughly comparable to the facilities built into Dolphin
+for interacting with COM and Active-X objects.  There are some big differences,
+though, mostly caused by the differences between the Java object model and COM.
+</P>
+<P>
+As with Dolphin's COM wrappers, you talk to a Java object via a Smalltalk object that
+acts as a proxy for it.  You can call Java methods via the proxy using a lowish-level API
+where you have to <EM>tell</EM> the proxy what the method name is, what the argument
+types are, and so on.  Alternatively you can use a higher-level of wrapper methods that
+are either statically generated (as by the Dolphin Active-X Wizard), or created dynamically.
+</P>
+<P>
+There are significant differences from the way that Dolphin wraps COM too.  One
+is that Java has type-precise introspection (and no equivalent of VB!), so there's much
+less &ldquo;guesswork&rdquo; involved in generating wrapper methods.
+Another is that Java classes are represented explicitly by wrapper objects
+(called <DFN>class statics</DFN>), so each proxy for a Java instance has both a
+Smalltalk class and a reference to the (shared) class static.  The Smalltalk class
+defines the wrapper methods for calling the Java object's methods, and accessing its fields.
+The class static is the single member of a different Smalltalk class that has methods
+for using the &ldquo;static&rdquo; methods and fields of the Java class.  The class
+static also has methods corresponding to the Java class's constructors, so it acts as a
+factory for new instances.  (That means that from the point of view of a JNIPort programmer,
+Java classes really <STRONG>are</STRONG> objects!)
+</P>
+<H2>A Damper</H2>
+<P>
+A few warnings before you start to expect too much:
+</P>
+<UL>
+<LI>
+JNIPort does <EM>not</EM> provide complete interoperability between Java and Smalltalk.
+For instance it is not possible to create Smalltalk subclasses of Java classes (or the
+other way around).
+</LI>
+<LI>
+The facilities for calling back from Java into Smalltalk are weak, slow, and clunky.
+</LI>
+<LI>
+JNIPort allows proper interaction with Java objects but it cannot magically give you
+the ability to redefine Java classes interactively too.
+</LI>
+<LI>
+This is evolving software; I expect that some of the design will change, so you should
+assume that interfaces, etc, <EM>will</EM> change in future versions.  Naturally, I
+think the interfaces are fairly stable, or I wouldn't be releasing it to public
+view, but I promise nothing.
+</LI>
+<LI>
+I haven't yet thought much about how to deploy applications based on a mixture of Java and
+Smalltalk.  It's clear that there would be problems &ndash; for instance the default Dolphin
+image stripper would remove needed wrapper classes.  This is an area that needs further work.
+</LI>
+</UL>
+<H2>Documentation</H2>
+<P>
+The software is complex enough to need documentation.  I suggest that you start
+by looking at the <A href="JNIPort/overview.html">overview</A>, which also includes
+a very simple example, and possibly this <A href="JNIPort/walkthrough.html">walkthrough</A>
+of installing and configuring JNIPort.
+You might also like to look at some more complete <A href="JNIPort/examples.html">examples</A>.
+I cannot, in honesty, fail to recommend a look at the
+<A href="JNIPort/problems.html">problems and limitations</A> of JNIPort.
+</P>
+<P>
+The complete documentation is listed <A href="JNIPort/index.html">here</A>.
+</P>
+
+<HR>
+<H3>Packages</H3>
+
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Package sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>CU Java Quasi-UTF8</TD>
+		<TD align="right">6715</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU JNI</TD>
+		<TD align="right">386963</TD>
+		<TD>1.09</TD>
+	</TR>
+	<TR>
+		<TD>CU JNI Helper</TD>
+		<TD align="right">15631</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Base</TD>
+		<TD align="right">657908</TD>
+		<TD>1.31</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Base Tests</TD>
+		<TD align="right">115959</TD>
+		<TD>1.03</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Callbacks</TD>
+		<TD align="right">67406</TD>
+		<TD>1.10</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Callback Tests</TD>
+		<TD align="right">44386</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Wrapper Generation</TD>
+		<TD align="right">113967</TD>
+		<TD>1.06</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Ghost Classes</TD>
+		<TD align="right">60579</TD>
+		<TD>1.10</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Wrapper Generation Tests</TD>
+		<TD align="right">63357</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Additional Wrappers</TD>
+		<TD align="right">180705</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Status Monitor</TD>
+		<TD align="right">131671</TD>
+		<TD>1.23</TD>
+	</TR>
+	<TR>
+		<TD>CU Java History Page</TD>
+		<TD align="right">19345</TD>
+		<TD>1.06</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Console Page</TD>
+		<TD align="right">23107</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Wrapper Wizard</TD>
+		<TD align="right">69246</TD>
+		<TD>1.05</TD>
+	</TR>
+	<TR>
+		<TD>CU Java JRockit Patch</TD>
+		<TD align="right">16905</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Java Examples</TD>
+		<TD align="right">8122</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU JNIPort</TD>
+		<TD align="right">1525</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU JNIPort Tests</TD>
+		<TD align="right">1352</TD>
+		<TD>1.00</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<P></P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Prerequisite packages' sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Abstract Collections">CU Abstract Collections</A></TD>
+		<TD align="right">51193</TD>
+		<TD>4.02</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Always">CU Always</A></TD>
+		<TD align="right">5976</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Anonymous Subclass">CU Anonymous Subclass</A></TD>
+		<TD align="right">2092</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Binary Arrays">CU Binary Arrays</A></TD>
+		<TD align="right">6126</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Collection Adaptors">CU Collection Adaptors</A></TD>
+		<TD align="right">34195</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD><A href="Experiments.html#CU Enhanced Scrolling Decorator">CU Enhanced Scrolling Decorator</A></TD>
+		<TD align="right">13841</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD><A href="Experiments.html#CU Form Layout">CU Form Layout</A></TD>
+		<TD align="right">27356</TD>
+		<TD>2.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Prerequisites.html">CU GDI Extensions</A></TD>
+		<TD align="right">10083</TD>
+		<TD>0.0004 (unpublished)</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Ghost Classes">CU Ghost Classes</A></TD>
+		<TD align="right">7592</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Experiments.html#CU Graphics Base">CU Graphics Base</A></TD>
+		<TD align="right">135733</TD>
+		<TD>0.0150</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Package-relative File Locator">CU Package-relative File Locator</A></TD>
+		<TD align="right">11829</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Prerequisites.html">CU PluggableWeakSet</A></TD>
+		<TD align="right">5238</TD>
+		<TD>0.0002 (unpublished)</TD>
+	</TR>
+	<TR>
+		<TD><A href="Experiments.html#CU PolyViewer">CU PolyViewer</A></TD>
+		<TD align="right">85322</TD>
+		<TD>1.03</TD>
+	</TR>
+	<TR>
+		<TD><A href="Prerequisites.html">CU PolyViewer Tools Base</A></TD>
+		<TD align="right">20325</TD>
+		<TD>0.0009 (unpublished)</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Rolling Accumulator">CU Rolling Accumulator</A></TD>
+		<TD align="right">7243</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Experiments.html#CU Selection From List Presenter">CU Selection From List Presenter</A></TD>
+		<TD align="right">70640</TD>
+		<TD>1.04</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Sortblocks">CU Sortblocks</A></TD>
+		<TD align="right">16398</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU String Extensions">CU String Extensions</A></TD>
+		<TD align="right">6885</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Prerequisites.html">CU Tools Base</A></TD>
+		<TD align="right">34422</TD>
+		<TD>0.0009 (unpublished)</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Varargs">CU Varargs</A></TD>
+		<TD align="right">22545</TD>
+		<TD>2.02</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Windows Shell Extensions">CU Windows Shell Extensions</A></TD>
+		<TD align="right">4809</TD>
+		<TD>1.00</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

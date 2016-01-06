@@ -1,0 +1,316 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>Miscellanea for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>Miscellanea for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><A href="index.html">Goodies</A></P>
+		<P><A href="JNIPort.html">JNIPort</A></P>
+		<P><A href="ZKit.html">Z-Kit</A></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><A href="SpaceBreakdown.html">Space Breakdown</A></P>
+		<P><A href="FMB.html">F.M.B.</A></P>
+		<P><A href="Ghoul.html">Ghoul</A></P>
+		<P><strong>Miscellanea</strong></P>
+		<P><A href="Experiments.html">Experiments</A></P>
+		<P><A href="Changes.html">Changes</A></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<P>
+This page collects together a number of minor (often trivial) packages that either I think
+are nevertheless useful enough to publish for their own sake, or which are required by other
+(possibly forthcoming) packages in my goodies.
+</P>
+<HR>
+<P>
+The packages are:
+</P>
+<DL>
+
+	<DT><B><A name="CU Package-relative File Locator">Package Relative File Locator</A></B></DT>
+	<DD>
+	<P>
+	two kinds of FileLocator that work relative to a package when used in the IDE, or
+	relative to the image when deployed.  One benefit is that it means I don't have
+	to follow, let alone impose, the absurd practise of keeping packages in an
+	image-relative position.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Varargs">Varargs</A></B></DT>
+	<DD>
+	<P>
+	Wrapper class for C's <code>va_list</code> that allows external interfacing to
+	many varargs-style functions.  Also includes an implementation of
+	<code class="Smalltalk">String>>sprintfWithArguments:</code> which takes an array of
+	arguments for sprintf() (which can include floating point numbers) and formats accordingly.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU String Extensions">String Extensions</A></B></DT>
+	<DD>
+	<P>
+	A few extra methods for <code>String</code>.  Specifically versions of
+	<code>#sprintf</code> that take more arguments and access to C's <code>strcmp()</code>
+	(which provide case-<em>sensitive</em> ordering of Strings &mdash; in the C locale).
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Stream Extensions">Stream Extensions</A></B></DT>
+	<DD>
+	<P>
+	A few trivial methods added to <code class="Smalltalk">WriteStream</code>
+	for writing out <code class="Smalltalk">WORDs</code>, <code class="Smalltalk">DWORDs</code>
+	and <code class="Smalltalk">SDWORDs</code>, plus big-endian equivalents.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Abstract Collections">Abstract Collections</A></B></DT>
+	<DD>
+	<P>
+	The standard Smalltalk Collections hierarchy has several concrete containers that
+	don't inherit from proper abstract superclasses, which makes them difficult to extend.
+	This package includes a number of classes that try to fake a reasonable abstraction
+	by inheriting <EM>from</EM> the concrete class, and then overriding enough methods
+	(back to subclassResponsibility) to act as an abstract base class for the same protocol.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Collection Adaptors">Collection Adaptors</A></B></DT>
+	<DD>
+	<P>
+	Builds on the Abstract Collections package to provide a number of simple adaptor classes.
+	Adaptors wrap some existing object that implements a small part of the interface of some
+	collection/stream, and extends it to support the entire interface.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Null Streams">Null Streams</A></B></DT>
+	<DD>
+	<P>
+	Builds on the Abstract Collections package to provide two trivial Streams. A
+	<code class="Smalltalk">WriteStream</code> that discards everything that is
+	written to it, and a <code class="Smalltalk">ReadStream</code> that always
+	answers the same object to <code class="Smalltalk">#next</code>.  Both keep
+	track of their positions.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Rolling Accumulator">Rolling Accumulator</A></B></DT>
+	<DD>
+	<P>A circular buffer class.</P>
+	</DD>
+
+	<DT><B><A name="CU Binary Arrays">Binary Arrays</A></B></DT>
+	<DD>
+	<P>A few more binary arrays to complete the portfolio provided with Dolphin.</P>
+	</DD>
+
+	<DT><B><A name="CU Sortblocks">Sort Blocks</A></B></DT>
+	<DD>
+	<P>
+	Simple &lt;diadicValuable&gt; objects that can be used as sort blocks.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Always">Always</A></B></DT>
+	<DD>
+	<P>
+	Simple &lt;*adicValueable&gt; objects that always answer the same value.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Hashed Pair">Hashed Pair</A></B></DT>
+	<DD>
+	<P>
+	Class of &ldquo;pair&rdquo; objects that are optimised for use as keys in dictionaries
+	to allow/simulate dictionaries with 2 or more keys.  Also some helper methods
+	added to <code>Dictionary</code>.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Storage Size">Storage Size</A></B></DT>
+	<DD>
+	<P>
+	A single method added to <code>Object</code> that estimates its memory footprint
+	in bytes.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Anonymous Subclass">Anonymous Subclass</A></B></DT>
+	<DD>
+	<P>
+	Tiny framework for making anonymous subclasses (i.e. ones that are not linked into the
+	browsable hierarchy) of existing classes.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Ghost Classes">Ghost Classes</A></B></DT>
+	<DD>
+	<P>
+	Builds on Anonymous Subclass to provide a framework for creating ephemeral and
+	dynamically generated classes &mdash; <dfn>ghost classes</dfn> &mdash such as are
+	used by <A href="JNIPort.html">JNIPort</A>.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Object Methods">Object Methods</A></B></DT>
+	<DD>
+	<P>
+	Builds on Anonymous Subclass to provide a framework for defining and managing
+	object-specific methods.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU Windows Shell Extensions">Windows Shell Extensions</A></B></DT>
+	<DD>
+	<P>
+	Trivial extension to the Windows Shell package which adds methods for retrieving
+	the names of Windows' standard folders (desktop, favourites, program files, etc).
+	Also extends BrowseFolderDialog to allow you to specify that network folders should
+	be included in the list.
+	</P>
+	</DD>
+
+</DL>
+<HR>
+<H3>Packages</H3>
+
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Package sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>CU Package-relative File Locator</TD>
+		<TD align="right">11829</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD>CU Varargs</TD>
+		<TD align="right">22545</TD>
+		<TD>2.02</TD>
+	</TR>
+	<TR>
+		<TD>CU String Extensions</TD>
+		<TD align="right">6885</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Stream Extensions</TD>
+		<TD align="right">13498</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Stream Extensions Tests</TD>
+		<TD align="right">9391</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU Abstract Collections</TD>
+		<TD align="right">51193</TD>
+		<TD>4.02</TD>
+	</TR>
+	<TR>
+		<TD>CU Collection Adaptors</TD>
+		<TD align="right">34195</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU Null Streams</TD>
+		<TD align="right">7557</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU Rolling Accumulator</TD>
+		<TD align="right">7243</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Binary Arrays</TD>
+		<TD align="right">6126</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Sortblocks</TD>
+		<TD align="right">16398</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD>CU Always</TD>
+		<TD align="right">5976</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD>CU Hashed Pair</TD>
+		<TD align="right">10870</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Storage Size</TD>
+		<TD align="right">1809</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Anonymous Subclass</TD>
+		<TD align="right">2092</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Ghost Classes</TD>
+		<TD align="right">7592</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD>CU Object Methods</TD>
+		<TD align="right">9044</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Windows Shell Extensions</TD>
+		<TD align="right">4809</TD>
+		<TD>1.00</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	--></TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+</BODY>

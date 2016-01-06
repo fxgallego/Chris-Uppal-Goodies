@@ -1,0 +1,252 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>JNIPort Problems and Limitations</H1>
+<P>
+This section contains some notes on what I see as the weaknesses of JNIPort.
+</P>
+
+<HR>
+<H2>Stability issues</H2>
+<P>
+JNIPort is based on the &ldquo;real&rdquo; Java runtime. That has great advantages in terms of
+performance and compatibility.  It brings corresponding disadvantages in the way that the
+Dolphin session is exposed to the whims and derelictions of the implementers of the Java
+runtime &mdash; which is, after all, just a DLL.
+</P>
+<P>
+Unfortunately, that means that using JNIPort can crash a Dolphin image.  Using the Sun
+JVMs, the problem has grown smaller and smaller with each successive release, but there still
+are very occasional crashes:
+</P>
+<UL>
+
+<LI><P>
+The biggest problem is, and probably always will be, <CODE class="Java">java.lang.System.exit()</CODE>.
+There are only three ways to deal with Java code that calls this pernicious method:
+</P>
+
+<OL>
+<LI><P>
+Do nothing; just hope that nothing will call <CODE class="Java">exit()</CODE>.  If it does then
+the Dolphin session will also exit.  You have no chance to save data.
+Actually this approach does work fairly well in practice, but is obviously not a perfect solution.
+</P></LI>
+<LI><P>
+Use the JNI exit &ldquo;hook&rdquo; to trap and ignore attempts to <CODE class="Java">exit()</CODE>.
+This ought to work, but does not &mdash; at least not with any implementation I've yet tried.
+Sun's JVMs up to 1.4.0 used to deadlock if you provided an exit hook that didn't exit.  1.4.1
+has improved the picture slightly, and it now hits an internal breakpoint (see below) instead.
+</P></LI>
+<LI><P>
+Use Java's internal security policies to forbid all calls to <CODE class="Java">exit()</CODE>;
+that might work, but I haven't tried it yet.
+</P></LI>
+</OL>
+<P>
+Or, I suppose, one could take a sharp stick and go &ldquo;reason&rdquo; with the code's author.
+</P>
+</LI>
+
+<LI><P>
+The programmers at Sun tend to forget that their Java runtime may only be a part of a bigger
+application; they leave breakpoints in the code rather than returning errors.
+I presume that their reasoning is that the JVM is no longer in a trustworthy
+state, so it's best just to exit.  They don't consider the possibility that
+the <EM>rest</EM> of the application might be able to continue, at least
+enough to allow you to save data, etc.
+</P>
+<P>
+The symptom is that you get a Windows error message telling you that a breakpoint has been
+reached, and giving you the option of killing the process (the default) or debugging it.
+I have <EM>sometimes</EM> been able to continue for a little while by letting the system
+start the debugger (MS VC++ in my case) and using it to &ldquo;continue&rdquo; the application.
+The Dolphin IDE's in a decidedly unstable state by that point, though, so it's better not to
+do more than save any work, and perhaps do a little debugging to see how the breakpoint was
+triggered.
+</P></LI>
+
+<LI><P>
+Any complex code can have problems; the Sun JVMs have a history of problems with floating point
+handling, for instance.  Since Dolphin and the Java DLL are sharing a process space, Dolphin is
+exposed to any bugs in the Java VM's implementation.  In general the latest JVMs seem
+pretty stable, but I still see crashes every couple of months or so.  Usually they don't
+kill Dolphin, but that can happen too.
+</P>
+<P>
+</P></LI>
+</UL>
+
+<P>
+See the notes on individual <A href="jvms.html">JVMs</A> for other information about
+specific problems with individual vendor's products.
+</P>
+
+<P>
+Most current Java VMs for Windows use operating-system threads.  (They may multiplex more
+than one Java thread onto an OS thread, but that doesn't affect this issue, except possibly
+to make it worse).  Dolphin executes all Smalltalk code on just one OS thread.  This mismatch of
+models is described in <A href="threading.html">the problem with threads</A>.  It causes a
+number of problems, most significantly it means that I've had to use some very slow and
+restricting workarounds to allow any callbacks from Java to Smalltalk at all.  Even with the
+workarounds, it is possible to create situations that deadlock.  They can be avoided by taking
+sufficient care, but it's difficult to get right (even more difficult than avoiding deadlocks
+in normal threaded code, which is challenging enough in itself).  The simple solution is not
+to use callbacks and Java threads together.
+</P>
+
+<P>
+One last point under this heading: I am not IBM (or Sun, or Microsoft), I do not have the
+resources for extensive testing.  But JNIPort is a fairly large piece of software;
+if I'd tested to the extent that I'd wish (either out of a programmer's natural desire
+to do a good job, or in my other role as a user of JNIPort) then it'd still be <EM>ages</EM>
+away from first release.
+</P>
+
+<HR>
+<H2>Performance issues</H2>
+<!-- UPDATEME -->
+<P>
+I think the biggest <EM>curable</EM> issue with JNIPort performance is that creating
+ghost classes can be very slow.  This isn't so much because it takes a long time to
+create a ghost class, but because creating a ghost for one class means that all other
+classes that it refers to (method parameters, and so on) also get imported.  Since these
+other classes also have ghost classes created for them, the process only stops when the
+transitive closure of the inter-class references have all been loaded.  In theory that
+could load every class on the planet.  In practice, the worst case I've seen is Swing, where
+referring to any one class is likely to drag in a large fraction of Swing &mdash; several
+hundred classes.  Switching to a less eager scheme for creating ghost classes is my single
+highest priority for the future of JNIPort.  <strong>Stop press:</strong> <em>actually that is
+available now, if you use a <CODE class="Smalltalk">JVMLazyGhostClassMaker</CODE> instead of
+an <CODE class="Smalltalk">JVMGhostClassMaker</CODE> &mdash; the feature is still experimental,
+though.</em>
+</P>
+<P>
+Callbacks from Java into Smalltalk could never be very convenient, since the JNI model is
+that all callbacks are implementations of &ldquo;native&rdquo; methods (so there is no
+instance-specific behaviour, and no natural equivalent of a function pointer).  However,
+because the <A href="threading.html">the problem with threads</A>, JNIPort can't even make
+full use of that (basically because it can't pass any object references across the interface
+from Java up into Smalltalk).  Therefore JNIPort includes a workaround that allows Java code
+to construct and enqueue &ldquo;request&rdquo; objects that hold the parameters and return
+value of a callback.  The only data that passes from Java to Smalltalk is a notification that the
+queue of requests is not empty, the rest of the process of serving the requests is driven
+from Dolphin (calling down into Java).  This works but is not convenient for the programmer;
+nor is it quick.  In fact it is very slow: in the <EM>millisecond</EM> range and up, which
+is too slow for many applications. Currently, I have no ideas at all about how this could
+be improved.
+</P>
+<P>
+Whenever a new reference to a Java object enters the JNIPort system, it must generate a wrapper
+object.  The lookups involved in finding the right classes mean that the performance is
+less than stellar.  Wrapping a reference takes (depending on the machine, and what optimisations
+JNIPort can use) 10 to 100 microseconds &mdash; which is quite a long time by computer standards.
+It <EM>might</EM> be possible to use some sort of lazy wrapping scheme to reduce the overhead,
+or perhaps some kind of cache, but I haven't investigated either the feasibility or the potential
+benefits yet.  I don't see this as high priority.
+</P>
+
+<HR>
+<H2>Functional issues</H2>
+<P>
+Probably the single most irritating thing about JNIPort (in a development context) is that you
+can't either run different Java runtimes at the same time, or stop the current one and start a
+new one.  This comes down to Sun's failure to implement their own published APIs (though all the
+other JVMs I've tested have the same failings).  There's nothing that can be done about it; if
+you want to start a new Java runtime, then you have to quit and restart Dolphin (fortunately,
+that's a fast operation).
+</P>
+<!-- UPDATEME -->
+<P>
+Currently there is no way to unload a reference to a Java class. Once JNIPort has seen a reference
+to it (say because it's seen an instance of a subclass) it will hold onto that reference until the
+Java runtime is shut down.  This prevents the class being garbage collected by Java. The issue
+may be trivial for some potential applications of JNIPort, but it directly affects my own work, so
+it's high on the list of things to fix.  <strong>Stop press:</strong> <em>actually that is available
+now, if you use a &ldquo;supplementary classloader&rdquo; &mdash; the feature is still experimental,
+though.</em>
+</P>
+<P>
+The methods in category 'documentation' on the class-side of <CODE class="Smalltalk">JVM</CODE>
+contain some more notes about bugs and deficiencies in the current version of JNIPort.
+</P>
+<P>
+I you happen to think that the new &ldquo;generics&rdquo; in Java are a good idea (I most
+certainly do not) then you may be disappointed to find that JNIPort doesn't support them.  In
+fact it <em>can't</em>, because generics are a fiction created entirely as a gross hack in the
+Java compiler, and are not seen by the Java runtime at all.  Since JNIPort talks to the Java
+runtime, and has nothing whatever to do with the Java compiler, it can only see and manipulate
+the <em>real</em> classes, objects, and methods.
+</P>
+
+<HR>
+<H2>Other issues</H2>
+<P>
+OK, yes, I admit it. The documentation's not complete.  It probably never will be.  Live with it.
+</P>
+<P>
+The documentation doesn't have enough structure to the cross-links either, I do intend to fix
+that.
+</P>
+<P>
+JNIPort lives in a large number of Dolphin packages.  It depends on a rather large number of
+further packages of code I've written.  Most of them are marked &ldquo;unpublished&rdquo; (see
+<A href="../Prerequisites.html">here</A> for an explanation of what I mean by that).  So it
+brings a lot of baggage with it.  There's very little I can do about that: I can't move the
+code from the prerequisite packages into JNIPort because other of my stuff depends on it
+(and not on JNIPort), and anyway that would just hide the problem.  I don't have a good
+solution, or I'd be using it.  I'm afraid it's just the practical downside of code reuse&hellip;
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

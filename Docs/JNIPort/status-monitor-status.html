@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The Status Monitor's Status Page</H1>
+<P>
+The <DFN>Status Page</DFN> is a plug-in page for the <A href="status-monitor.html">Status
+Monitor</A>.  It displays some statistics about JNIPort and provides the means to close it
+down.
+</P>
+<P>
+<IMG src="status-monitor-status.gif" alt="Status Monitor showing Status page">
+</P>
+<P>
+The statistics are updated at intervals controlled by the 'View&rArr;Update interval&rArr;'
+sub-menu. The statistics are:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3 width="70%">
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Meaning</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>JVM name</TD>
+		<TD>You can probably guess this one&hellip;</TD>
+	</TR>
+	<TR>
+		<TD>Status</TD>
+		<TD>
+		Whether it's running or has been shutdown (or died by itself).
+		</TD>
+	</TR>
+	<TR>
+		<TD>Ghost classes</TD>
+		<TD>
+		Indicates whether it is configured to use <A href="ghost-classes.html">ghost
+		classes</A>.  The value may be 'Lazy' or 'Eager' if ghost classes are used
+		at all, otherwise will be 'NotUsed'.  'Eager' means that ghosts classes are
+		generated as soon as the class is mentioned; 'Lazy' means that their creation
+		is postponed until they are actually used (which improves startup time
+		markedly, but is still an experimental feature in this version of JNIPort).
+		This is only a rough indication because ghost classes may only be in use for
+		some Java classes.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Supports callbacks</TD>
+		<TD>
+		Whether it has been configured to support
+		<A href="callbacks.html">callbacks</A>.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Supplementary classloaders</TD>
+		<!-- UPDATEME -->
+		<TD>
+		Whether the use of supplementary classloaders is currently enabled
+		(an experimental feature in this version of JNIPort).
+		</TD>
+	</TR>
+	<TR>
+		<TD>Local object refs</TD>
+		<TD rowspan=3>
+		The number of references to Java objects currently held by JNIPort.
+		The distinction between local and global is an internal matter (reflecting
+		one of the odd features of <A href="jni.html">JNI</A>).  Local references
+		are not used at all if JNIPort has been configured to support 
+		callbacks.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Global object refs</TD>
+	</TR>
+	<TR>
+		<TD>Total object refs</TD>
+	</TR>
+	<TR>
+		<TD>Local pool allocated</TD>
+		<TD>
+		This is another internal matter related to JNI.  The local pool
+		is allocated by JNI; it should be large enough for all
+		all the local references held at any one time.  This
+		number should never shrink, and may grow quite large if the
+		finalisation process falls too far behind the allocator.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Objects created</TD>
+		<TD>
+		The total number of references to Java objects that
+		have been wrapped as Smalltalk objects in the life of
+		this runtime.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Objects released</TD>
+		<TD>
+		The total number of wrapper objects that have died
+		and released their wrapped reference to a Java object.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Callback nesting</TD>
+		<TD>
+		The number of callbacks that are active at this time.  If Dolphin
+		is currently servicing a callback (i.e. Smalltalk code has been called
+		from Java) then this number will be at least one.  Normally it will be zero.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Registry size</TD>
+		<TD>
+		The size of the <A href="players.html#Class Registry">class registry</A>.
+		This is just the number of Java classes and other types that JNIPort has
+		ever loaded.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Index size</TD>
+		<TD>
+		The size of the <A href="players.html#Class Index">class index</A>.
+		This is just the number of Java classes and other types that JNIPort has
+		ever loaded by name (the <CODE class="Smalltalk">JVM>>findClass:</CODE>
+		method).
+		</TD>
+	</TR>
+	<TR>
+		<TD>Callbacks</TD>
+		<TD>
+		The total number of callbacks that have been processed.
+		This row, and the next three, will be -1 if the callback registry has not yet
+		(lazily) initialised itself, and will not be displayed at all if callbacks are
+		not configured.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Callback queue length</TD>
+		<TD rowspan=2>
+		The current and maximum length of the queue used for
+		callback notifications from Java code into Smalltalk.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Callback queue max</TD>
+	</TR>
+	<TR>
+		<TD>Callbacks registered</TD>
+		<TD>
+		The number of callback handlers that are registered with the callback
+		registry.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Hook queue length</TD>
+		<TD rowspan=2>
+		The current and maximum length of the queue used by
+		<A href="jni-helper.html">JNI Helper</A> to hold notifications
+		of debugging events from the Java runtime until Dolphin is
+		ready to accept them without deadlocking.  These rows are not displayed
+		if JNI Helper is not configured.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Hook queue max</TD>
+	</TR>
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

@@ -1,0 +1,407 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+
+<H1>Type Names and Signatures</H1>
+
+<P>
+In Java, classes are named in dot-separated form, such as
+<CODE class="Java">java.lang.String</CODE>; primitive types are just called
+<CODE class="Java">int</CODE>, <CODE class="Java">double</CODE>, etc; and names for
+array types are constructed by appending <CODE class="Java">[]</CODE> to the name
+of the base type as many times as necessary.
+</P>
+<P>
+It will probably not surprise you to learn that JNI and the JVM do <EM>not</EM> work this way.
+</P>
+<P>
+Actually there are two, subtly different, naming schemes used by both the JVM and JNI.
+The good news is that if you use the top-level of JNIPort then you won't have to
+worry about either of them because the generated class wrappers know about JNI names.
+The bad news is that if you want to use the JNI wrapper layer or the Java base layer,
+then you are going to have to get your head around some of this stuff.  Sorry!
+</P>
+<P>
+One scheme is used by JNI and the JVM for referring to types by name, the other is used by
+when specifying the signatures of methods.
+</P>
+<P>
+(By the way, there is a third naming scheme in the Java world: that understood
+by the Java method, <CODE class="Java">java.lang.Class.forName()</CODE> &mdash; its
+rules are different again, but there's no need to go into that here.)
+</P>
+
+<HR>
+<H2>JVM/JNI Type Names</H2>
+<P>
+In contexts where the Java runtime expects the name of a type (e.g. the
+JNI function <CODE class="C">FindClass()</CODE>), then the names of Classes
+and Interfaces are formed by replacing all the dots in the fully qualified
+Java name by slashes.  E.g:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Fully qualified Java class name</TH>
+		<TH>JVM/JNI type name</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">java.lang.String</CODE></TD>
+		<TD><CODE>java/lang/String</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">java.util.Map</CODE></TD>
+		<TD><CODE>java/util/Map</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+
+<P>
+If the type is a primitive type (<CODE class="Java">int</CODE>,
+<CODE class="Java">boolean</CODE>, etc) then there is no way to name the type
+directly (this is an inconsistency in the naming scheme).
+</P>
+<P>
+If the type is an array type (including arrays of primitive types), then the
+rules are the same as for JNI type signatures.  See <A href="#Type Signatures">below</A>
+for the details, but some examples are:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Fully qualified Java array class name</TH>
+		<TH>JVM/JNI type name</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">java.lang.String[]</CODE></TD>
+		<TD><CODE>[Ljava/lang/String;</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">int[]</CODE></TD>
+		<TD><CODE>[I</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">long[][]</CODE></TD>
+		<TD><CODE>[[J</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+
+<P>
+If you are using the Java Base layer or above, then you don't need to worry about
+JVM/JNI type names, since the system understands how to find a class object given a name
+in &ldquo;normal&rdquo; Java format.  (It also understands the JVM/JNI format, but you
+aren't forced to use that.)  The way to find a class by name (at this level) is to
+use the <CODE class="Smalltalk">JVM&gt;&gt;findClass:</CODE> method.  It takes a
+<CODE class="Smalltalk">Symbol</CODE> or <CODE class="Smalltalk">String</CODE> argument
+(<CODE class="Smalltalk">Symbol</CODE> is more efficient), e.g:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Fully qualified Java type name</TH>
+		<TH>Argument to <CODE class="Smalltalk">JVM&gt;&gt;findClass:</CODE></TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">java.lang.String</CODE></TD>
+		<TD><CODE class="Smalltalk">#'java.lang.String'</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">java.util.Map</CODE></TD>
+		<TD><CODE class="Smalltalk">#'java.util.Map'</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">boolean</CODE></TD>
+		<TD><CODE class="Smalltalk">#boolean</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">java.lang.String[]</CODE></TD>
+		<TD><CODE class="Smalltalk">#'java.lang.String[]'</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">double[][]</CODE></TD>
+		<TD><CODE class="Smalltalk">#'double[][]'</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+
+<HR>
+<H2><A name="Signatures">JVM/JNI Signatures</A></H2>
+<P>
+If you are using the 'Java Base' layer of JNIPort, then you have to specify the
+signature of any method you call, or field you access.  It may help to know that
+the Smalltalk objects that wrap Java's <CODE class="Java">java.lang.reflect.Method</CODE>,
+<CODE class="Java">.Field</CODE>, and <CODE class="Java">.Constructor</CODE> object
+know how to compute their own signatures.  (And why the Java objects themselves can't
+do it is more than I can imagine&hellip;)
+</P>
+
+
+<H3>Method Signatures</H3>
+<P>
+In Java, methods can be overloaded &mdash; that is you can have several different
+methods with the same name, but which take arguments of different types.  For instance,
+if you use the method <CODE class="Java">java.lang.Object.wait()</CODE>, then the
+compiler will determine which of the three versions of <CODE class="Java">wait()</CODE>
+you mean from the types of the arguments you supply (if any).  What is really happening
+(i.e. what the JVM sees) is that a Java method is named by a <EM>pair</EM> of strings,
+one is the &ldquo;normal&rdquo; name of the method, the other is the <DFN>signature</DFN>.
+The signature of a method is a string that describes the return type of the method and
+the (static) types of its arguments.  When talking to the JVM, you never refer to a
+method just by the &ldquo;normal&rdquo; name, you always give both the name and the
+signature.
+</P>
+<P>
+A method's signature is written: <CODE>(&lt;argument types&gt;)&lt;return type&gt;</CODE>
+where the <CODE>&lt;argument types&gt;</CODE> substring is formed by concatenating the
+signature names of the types of the arguments (if there are any), and the
+<CODE>&lt;return type&gt;</CODE> is just the signature name of the return type.
+</P>
+
+
+<P>
+Type signatures are described <A href="#Type Signatures">below</A>, but here are some
+examples of complete signature strings for a few methods;
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Method</TH>
+		<TH>Signature</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">void doNothing() { }</CODE></TD>
+		<TD><CODE>()V</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">int returnOne() { return 1; }</CODE></TD>
+		<TD><CODE>()I</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">void main(String[] args) { ... }</CODE></TD>
+		<TD><CODE>([Ljava/lang/String;)V</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">long sum(int[] n) { ... }</CODE></TD>
+		<TD><CODE>([I)J</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">Point square(Point p) { ... }</CODE></TD>
+		<TD><CODE>(Ljava/awt/Point;)Ljava/awt/Point;</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+
+
+<P>
+Java constructors (which are not, technically, methods at all) also have signatures;
+they are used to distinguish between the different forms of the constructor. 
+The <CODE>&lt;argument types&gt;</CODE> substring is constructed in the usual way,
+and the return type is always 'V'.  There is no real need to name constructors in JNIPort
+(since instances are always created via special JNI functions), but they are
+considered to have the name <CODE class="Java">&ldquo;&lt;init&gt;&rdquo;</CODE>.
+</P>
+
+<P>
+You will only need to use method signatures if you are using the Java Base level of JNIPort
+to call methods.  The higher level automatically works out the signatures when it generates
+wrapper methods.
+</P>
+
+<H3>Field Signatures</H3>
+<P>
+One possibly surprising fact is that in JNI (and at the JVM level) Java <EM>fields</EM>
+have signatures too, and in fact it is possible to have more than one member field with
+the same name (but holding different types).  The signature of a field is just the
+signature of the type that it is (statically) declared to hold.
+</P>
+<P>
+As with method signatures, you will need to use member signatures if you are
+using the Java Base level of JNIPort to read/write fields.  (The higher levels
+automatically work out the signatures when the accessor methods are generated).
+</P>
+
+<H3><A name="Type Signatures">Type Signatures</A></H3>
+
+<P>
+The signature names of primitive types are single letters as follows:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Primitive type</TH>
+		<TH>Signature</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">byte</CODE></TD>
+		<TD><CODE>B</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">char</CODE></TD>
+		<TD><CODE>C</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">double</CODE></TD>
+		<TD><CODE>D</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">float</CODE></TD>
+		<TD><CODE>F</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">int</CODE></TD>
+		<TD><CODE>I</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">long</CODE></TD>
+		<TD><CODE>J</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">short</CODE></TD>
+		<TD><CODE>S</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">void</CODE></TD>
+		<TD><CODE>V</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">boolean</CODE></TD>
+		<TD><CODE>Z</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+<P>
+(Note the irregularities for <CODE class="Java">long</CODE> and
+<CODE class="Java">boolean</CODE>)
+</P>
+<P>
+So a method that takes a <CODE class="Java">char</CODE> and a <CODE class="Java">boolean</CODE>,
+and returns another <CODE class="Java">char</CODE>, e.g:
+</P>
+<PRE><CODE class="Java">	char convertCase(char ch, boolean uppercase) {...}
+</CODE></PRE>
+<P>
+would be named by the string &ldquo;convertCase&rdquo; and have signature
+&ldquo;(CZ)C&rdquo;, since the signatures of the arguments are 'C' and 'Z'
+respectively, and the signature of the return-type is 'Z'.
+</P>
+<P>
+A method that takes no arguments and returns void has signature &ldquo;()V&rdquo;.
+</P>
+<P>
+The signature of a class is the letter 'L' followed by the fully-qualified
+class name with the dots replaced by slashes, all followed by a semi-colon.  E.g:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Class</TH>
+		<TH>Signature</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">java.lang.String</CODE></TD>
+		<TD><CODE>Ljava/lang/String;</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">java.awt.Point</CODE></TD>
+		<TD><CODE>Ljava/awt/Point;</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+
+<P>
+The signature of an array class is the letter '[' followed by the signature of
+the element class (which may itself be another array class), e.g:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Array class</TH>
+		<TH>Signature</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">java.lang.String[]</CODE></TD>
+		<TD><CODE>[Ljava/lang/String;</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">java.awt.Point[][]</CODE></TD>
+		<TD><CODE>[[Ljava/awt/Point;</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">int[]</CODE></TD>
+		<TD><CODE>[I</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">boolean[][][]</CODE></TD>
+		<TD><CODE>[[[Z</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

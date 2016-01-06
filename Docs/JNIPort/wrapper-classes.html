@@ -1,0 +1,217 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Static Wrapper Classes</H1>
+<P>
+The <A href="java-base.html">basic layer</A> of JNIPort provides proxies for
+Java objects and classes, the proxies allow you to invoke the underlying Java
+objects' methods and to access their fields. But they are not, in themselves,
+particularly easy to use.  Invoking an object's
+<CODE class="Java">toString()</CODE> method, for instance, 
+involves Smalltalk code like:
+</P>
+<PRE><CODE class="Smalltalk">	aJavaObject
+		callObjectMethod: 'toString'
+		signature: '()Ljava/lang/String;'
+		withArguments: nil.
+</CODE></PRE>
+<P>
+which is neither convenient nor readable.
+</P>
+<P>
+The next step towards real usability is that JNIPort
+allows you to specify custom <DFN>wrapper classes</DFN>.  These are subclasses
+of the generic proxy classes that are associated with specific Java classes.
+Whenever JNIPort creates a proxy for an instance of a Java class, it checks
+to see if there is a special wrapper class registered for that case.  If there
+is then it creates an instance of the custom class rather than the generic one.
+JNIPort follows a similar pattern when it is creating class statics to stand for
+Java classes.  You can add methods to the custom subclass that expose the Java
+object's (or class's) members directly, or that build on them to create a
+higher-level interface. Those methods would have to use the low-level features
+like <CODE class="Smalltalk">#callObjectMethod:signature:withArguments:</CODE>
+internally, but they can provide a much nicer interface to the users of the proxy.
+</P>
+<P>
+This section is about the custom wrapper classes, and how to set them up and use them.
+The <A href="wrapper-wizard.html">Wrapper Wizard</A> is able to do the grunt-work
+of generating code like the call to <CODE class="Java">toString()</CODE>, above,
+so this section is mostly background for understanding what it does and how to
+use the results.
+</P>
+<P>
+<strong>Please note:</strong> <em>this description has become slightly out of date.  It is still
+accurate as far as it goes, but it should be updated to discuss how the new &ldquo;supplementary
+classloaders&rdquo; fit into the picture.</em>
+</P>
+<P>
+JNIPort establishes the mapping between Java classes and their designated wrappers
+during the phase of initialisation called <A href="players.html#Bootstrapping">
+bootstrapping</A>.  At this time, it scans the subclasses of
+<CODE class="Smalltalk">JavaObject</CODE> looking for classes that announce themselves
+to be wrappers.  A class states that it is a wrapper by answering true to
+<CODE class="Smalltalk">#isWrapperClass</CODE>, which by default is implemented as
+a test that the class has a class-side method (not inherited) named
+<CODE class="Smalltalk">#javaClassName</CODE>.  If it does then subclasses of
+<CODE class="Smalltalk">JavaInstance</CODE> are registered as the prefered instance
+wrapper class for the Java class named by <CODE class="Smalltalk">#javaClassName</CODE>,
+and subclasses of <CODE class="Smalltalk">JavaStatic</CODE> are registered as the
+preferred class for the corresponding class static.  In fact the class static is created
+at this time, and it remembers the preferred instance class.
+</P>
+<P>
+In normal operation, all the mappings are established during bootstrapping, but
+the Wrapper Wizard has the option of registering any new wrapper classes that
+it builds.  Also <A href="ghost-classes.html">ghost classes</A> are created
+and installed using very much the same mechanism.
+</P>
+<P>
+When JNIPort encounters a reference to a class it has not seen before (which
+can happen in many ways; e.g. when it sees a reference to an instance of
+that class) it creates a class static for the class.  It decides what the
+Smalltalk class of the class static will be by climbing the inheritance
+ladder of the Java class until it finds a class that it already knows about
+(which may turn out to be <CODE class="Java">java.lang.Object</CODE>)
+It then uses the same class for the new class static as it did for the
+ancestor it has just found.  The effect of this is that any registered class-side
+wrapper (a subclass of <CODE class="Smalltalk">JavaStatic</CODE>, and in fact
+of <CODE class="Smalltalk">JavaClassStatic</CODE>) will be used for its own
+Java class and any subclasses.  For instance JNIPort uses instances of
+<CODE class="Smalltalk">StaticJavaLangClassLoader</CODE> as the class statics
+for the Java class <CODE class="Java">java.lang.ClassLoader</CODE>, and for all
+of its subclasses.
+</P>
+<P>
+JNIPort uses the same technique to find the right instance-side wrapper class,
+so that, for example, all references to instances of
+<CODE class="Java">java.lang.Throwable</CODE> will be proxied by instances
+of <CODE class="Smalltalk">JavaLangThrowable</CODE>.  You can, of course,
+add more specialised subclasses; indeed the 'CU Java Additional Wrappers' package
+does add two specialised sub-classes of <CODE class="Smalltalk">JavaLangThrowable</CODE>
+that are used for instances of <CODE class="Java">java.lang.Error</CODE>
+and <CODE class="Java">java.lang.Exception</CODE> and their further subclasses.
+</P>
+<P>
+JNIPort uses class statics for Java interfaces too.  The mechanism is the
+same as for normal classes, with the slight difference that, since Java interfaces
+don't inherit from <CODE class="Java">java.lang.Object</CODE>, the interface
+wrappers are subclasses from <CODE class="Smalltalk">JavaInterfaceStatic</CODE>.
+</P>
+<P>
+JNIPort can also create proxies for Java objects that are known to implement
+some interface.  This case is really rather different from the normal proxies,
+see <A href="java-base.html#Interface Instances">here</A> for details, but the
+mechanism is very similar.  Subclasses of
+<CODE class="Smalltalk">JavaInterfaceInstance</CODE>
+announce themselves to be wrappers for the Java interfaces named by their 
+<CODE class="Smalltalk">#javaClassName</CODE> methods in the same way.
+</P>
+<P>
+A convenient way to create and use wrapper classes is to start with the
+methods generated by the Wrapper Wizard, and then embellish the wrapper
+class with further methods that build on the generated methods, but which
+have more natural names and, perhaps, a higher-level of functionality than
+is provided by the Java class itself.  (As an aside: Java classes tend to
+have very narrow interfaces, sometimes to the point of anorexia.)
+</P>
+<P>
+As an example of this, the package 'CU Java Additional Wrappers' contains
+instance wrapper classes for <CODE class="Java">java.io.OutputStream</CODE>
+and <CODE class="Java">java.io.Writer</CODE>.  The wrapper classes were
+both generated by the Wrapper Wizard, and so they have methods with names like
+<CODE class="Smalltalk">#write_charArray:int:int:</CODE> and
+<CODE class="Smalltalk">#write_byteArray:int:int:</CODE> which simply forward
+to the corresponding Java methods.  The methods are named by following
+JNIPort's mechanical <A href="method-names.html">rules</A> for the names of the
+generated methods.  The names are not very Smalltalk-ish, and the interpretation
+of the Integer parameters follows Java's 0-based indexing convention.  Therefore
+the Additional Wrappers package embellishes the raw Java methods with Smalltalk
+methods like <CODE class="Smalltalk">#writeChars:from:to:</CODE>, which follow
+the normal Smalltalk conventions, and <CODE class="Smalltalk">#nextPutAll:</CODE>
+which allow the proxies to understand the Smalltalk output stream protocols.
+</P>
+<P>
+One important point about this particular example is that most of the embellishments
+are implemented in a common superclass for the two wrapper classes.
+<CODE class="Smalltalk">JavaIoOutputStream</CODE> and
+<CODE class="Smalltalk">JavaIoWriter</CODE> both inherit from
+<CODE class="Smalltalk">JavaWriteStream</CODE>, which is where methods like
+<CODE class="Smalltalk">#cr</CODE> and <CODE class="Smalltalk">#space</CODE>
+are implemented.  <CODE class="Smalltalk">JavaWriteStream</CODE> is not itself
+a wrapper class, but it collects some useful commonality between the two Java
+classes, even though they are not related in the Java hierarchy. JNIPort
+contains several such cases where &ldquo;informal&rdquo; similarities between
+Java classes are exploited as subclass relationships within the hierarchy of
+wrapper classes.
+</P>
+<P>
+One last point is about ghost classes.  JNIPort generates and populates ghost classes
+on the fly.  When it generates a ghost class, it always ensures that the ghost inherits
+from the most applicable custom wrapper class, which means that it will also understand
+any embellishments that are defined by the wrapper class.  For instance, in the case
+of a <CODE class="Java">java.Io.Writer</CODE>, the proxy will be an instance of a
+dynamically-generated subclass of <CODE class="Smalltalk">JavaIoWriter</CODE>, and
+so will understand <CODE class="Smalltalk">#nextPutAll:</CODE>.
+</P>
+<P>
+The Wrapper Wizard generates methods with the same names and meanings as the
+ghost classes have, but the ghost implementation is faster.  So, when a ghost
+is derived from a class that was initially populated by the Wrapper Wizard, the
+ghost methods will override the Wizard-generated methods with faster versions.
+Because <CODE class="Smalltalk">#nextPutAll:</CODE> is implemented on top of the
+methods that the Wrapper Wizard-generated (rather than calling the methods of
+'Java Base' directly) it will pick up the faster implementation if ghosts are in use.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

@@ -1,0 +1,110 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The Status Monitor's History Page</H1>
+<P>
+The <DFN>History Page</DFN> is a plug-in page for the <A href="status-monitor.html">Status
+Monitor</A> that displays a histogram of JNIPort activity.
+</P>
+<P>
+<IMG src="status-monitor-history.gif" alt="Status Monitor showing History page">
+</P>
+<P>
+The graph is updated at intervals controlled by the 'View&rArr;Update interval&rArr;'
+sub-menu (which is initially set from the JVM's <CODE class="Smalltalk">#statusMonitorSettings</CODE>
+configuration settings). The traces are labelled by the &ldquo;legend&rdquo; (which can be turned off
+from the View menu), they are:
+</P>
+<DL>
+
+<DT>Local refs (solid blue)</DT>
+<DD><P>
+The number of &ldquo;local&rdquo; references to Java objects that were wrapped by JNIPort
+objects at the sampling time.
+</P></DD>
+
+<DT>Global refs (solid dark green)</DT>
+<DD><P>
+The number of &ldquo;global&rdquo; references to Java objects that were wrapped by JNIPort
+objects at the sampling time.
+</P>
+<P>
+The distinction between local and global is an internal matter (reflecting
+one of the odd features of <A href="jni.html">JNI</A>).  Local references
+are not used at all if JNIPort has been configured to support 
+callbacks.
+</P></DD>
+
+<DT>Refs created per sec (light green line)</DT>
+<DD><P>
+The rate at which JNIPort wrapped references to Java objects over the period since the
+previous sampling time.
+</P></DD>
+
+<DT>Refs released per sec (pink line)</DT>
+<DD><P>
+The rate at which JNIPort discarded and released references to Java objects over the
+period since the previous sampling time.  (Since references are released by finalisation,
+this is a measure of how much work JNIPort is giving the finaliser to do.)
+</P></DD>
+
+<DT>Callbacks per sec (yellow line)</DT>
+<DD><P>
+The rate at which JNIPort serviced <A href="callbacks.html">callbacks</A> over the
+period since the previous sampling time.
+</P></DD>
+
+</DL>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

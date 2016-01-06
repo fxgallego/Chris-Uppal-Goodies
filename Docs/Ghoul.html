@@ -1,0 +1,206 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>Ghoul for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>Ghoul for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><A href="index.html">Goodies</A></P>
+		<P><A href="JNIPort.html">JNIPort</A></P>
+		<P><A href="ZKit.html">Z-Kit</A></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><A href="SpaceBreakdown.html">Space Breakdown</A></P>
+		<P><A href="FMB.html">F.M.B.</A></P>
+		<P><strong>Ghoul</strong></P>
+		<P><A href="Miscellanea.html">Miscellanea</A></P>
+		<P><A href="Experiments.html">Experiments</A></P>
+		<P><A href="Changes.html">Changes</A></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<P>
+<dfn>Ghoul</dfn> is a small tool for displaying a debugger-like view of Dolphin crash-dump files.
+These files are created when Dolphin crashes (if that is enabled) or when deployed .EXEs encounter
+an uncaught exception.  They can also be created programmatically.
+</P>
+<P>
+Ghoul works by parsing out the &ldquo;Stack Back Trace&rdquo; section of a crashdump, and then using
+that information to cross-link to the current definitions of the methods in your working image.
+</P>
+<P>
+The name &ldquo;Ghoul&rdquo;, of course, is because it digests the remains of dead
+programs&hellip;
+</P>
+<HR>
+<P><strong>
+This version of Ghoul is known not to work with the recently released Dolphin 6.
+</strong></P>
+<HR>
+<P>
+Ghoul installs itself in the 'Extra Tools' system folder and menu; you can launch it from there
+and then use the File menu to open a crash dump file.  Since such files can contain several stack
+traces, a drop-list at the top of the window allows you to select which you want to look at.  By
+default Ghoul will display the most recent trace.
+</P>
+<P>
+At this point, a picture is probably worth a thousand words&hellip;
+</P>
+<P>
+<IMG src="Ghoul.gif" alt="Ghoul showing part of a backtrace">
+</P>
+<P>
+The rest of the window is similar to the normal Dolphin debugger (but of course, everything
+is read-only), the list at the left shows the active method calls at the time the crashdump
+was made.  Selecting from that list will show the values of the method parameters and
+local variables at that time (sadly, you can't see the values of instance variables).  The other
+pane shows the <em>current</em> source for the selected method, and highlights the expression
+that was executing at that moment.
+</P>
+<P>
+One thing to be careful of: if the method's definition has changed since the dump was made,
+then Ghoul can get confused about matching up the data in the dump file with
+that in your image.  This will only affect the methods that have changed, not the entire stack
+trace.  If the method is not present in your image then Ghoul will fall back to showing a warning
+message in the source pane and using generic names for the variables.
+</P>
+<P>
+If you have <A href="http://www.gorisek.com/" target="_blank">STS</A> installed (David
+Gorisek's  source-code control product), then Ghoul will attempt to check that the method's
+definition is at least as old as the data in the dump file.  If it finds a mismatch, then the
+method will be displayed &ldquo;greyed out&rdquo;.  Please don't rely on this overmuch; it is
+perfectly possible that you modified the method after deploying the application, but before the
+dump file was written.
+</P>
+<P>
+As you'll see, Ghoul is really not doing anything very clever &mdash; it just provides a
+somewhat friendlier view of the contents of a crash dump file, without doing any (or
+needing to do) any elaborate processing.
+</P>
+<HR>
+<P>
+Crash dump files can be created programmatically using:
+</P>
+<PRE><CODE class="Smalltalk">	VMLibrary default crashDump: 'This is a test'.
+</CODE></PRE>
+<P>
+which will write a crashdump file to the place indicated by the
+Dolphin crash dump registry entry.  For Dolphin 5.0 and 5.1 this is:
+</P>
+<PRE><CODE class="Smalltalk">	HKEY_LOCAL_MACHINE\SOFTWARE\Object Arts\Dolphin Smalltalk 5.0\CrashDump
+</CODE></PRE>
+<P>
+which should be set to the name of the target file.
+</P>
+<P>
+Alternatively you can use:
+</P>
+<PRE><CODE class="Smalltalk">	VMLibrary default
+		dump: 'this is a test'
+		path: aFilename
+		stackDepth: -1
+		walkbackDepth: -1.
+</CODE></PRE>
+<P>
+which will write a similar file to aFilename.  If aFilename is nil, then it creates a file
+called <code>&lt;image-name&gt;.ERRORS</code> in the same directory as your image file.
+</P>
+<HR>
+<P>
+Ghoul has a couple of obscure options that control how it parses dump files, these are
+necessary because of some problem with the Dolphin dump code which can produce inconsistent
+output.  (I don't like either of these hacks, and would prefer not to have mentioned them
+at all, but they might be confusing so I thought it better to explain.)
+</P>
+<P>
+The IP (instruction pointer) numbers in the stack trace can be in either hex or decimal;
+normally Ghoul can guess which depending on what kind of dump file it is, but apparently this
+isn't reliable, and in fact the hex/decimal choice can change within one stack trace.
+Therefore I've added a menu option to toggle between hex and decimal parsing.  You can use it
+if the highlighted code, or the interpretation of the local variables, doesn't seem to be
+making sense.
+</P>
+<P>
+Similarly Ghoul can only make a guess at how to parse the date embedded in the trace, normally
+it assumes the date format from your current locale, but if you are reading dump files created
+elsewhere or on a Win2K box (which seem to ignore the locale for dumps) then you can force the
+format it expects.  The setting is image-wide and can be found under 'GhoulShell' in the normal
+Dolphin options, or via Ghoul's own 'Options' menu.
+</P>
+<HR>
+<H3>Packages</H3>
+
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Package sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>CU Ghoul</TD>
+		<TD align="right">85576</TD>
+		<TD>4.00</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<P></P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Prerequisite packages' sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Package-relative File Locator">CU Package-relative File Locator</A></TD>
+		<TD align="right">11829</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Prerequisites.html">CU Tools Base</A></TD>
+		<TD align="right">34422</TD>
+		<TD>0.0009 (unpublished)</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	--></TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+</BODY>

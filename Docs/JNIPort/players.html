@@ -1,0 +1,636 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>JNIPort Players</H1>
+<P>
+These two sections introduce the main players in the community of JNIPort objects and
+try to explain something of how they interact.
+</P>
+<P>
+This presentation is about the <EM>objects</EM>, which is in contrast to the
+<A href="layers.html">alternative</A> presentation as a breakdown into the three
+<EM>layers</EM> of the software.
+Here I mostly ignore anything below layer two, since it's only used in the implementation of
+these concepts.  I also ignore the distinction between layers two and three; the topmost
+layer just provides ways of automating what layer two does without materially changing the
+cast of objects.
+</P>
+<P>
+Another approach to understanding the basic concepts of JNIPort is 
+<A href="java-base.html">this</A> overview of the classes involved.
+</P>
+<!-- UPDATEME -->
+<P>
+<strong>Please note:</strong> <em>this description has become slightly out of date.  It is still
+accurate as far as it goes, but it should be updated to discuss the JVM's role as a
+<code class="Smalltalk">&lt;javaClassFinder&gt;</code>, and how the new &ldquo;supplementary
+classloaders&rdquo; fit into the picture.  The section on the class lifecycle should be
+updated to mention the additional possibility of being converted into a &ldquo;lazy
+ghost&rdquo;.</em>
+</P>
+<H2><A name="JVM">The JVM Object</A></H2>
+<P>
+The central actor in JNIPort is the is the <DFN>JVM</DFN> object, an instance of class
+<CODE class="Smalltalk">JVM</CODE> (or a subclass).  This represents one running Java VM
+in the Smalltalk space (the running VM is actually a DLL supplied by Sun, IBM, or whoever).
+The job of the JVM is mostly coordination, it is the one object that <EM>all</EM> other
+objects in the system know about, and it allows them to find each other.  The JVM also
+manages the process of starting up the Java VM and the JNIPort runtime machinery.
+</P>
+<P>
+For a user of JNIPort, the main function of the JVM is that it knows how to find the
+objects representing  Java classes &mdash; the &ldquo;class statics&rdquo;, of which
+more below.  It also coordinates the <A href="#Class Registry">class registry</A>,
+the <A href="#Class Index">class index</A>, and the
+<A href="#Callback Registry">callback registry</A>, these are important parts of
+the implementation of JNIPort; but are (to varying degrees) less relevant to JNIPort users.
+</P>
+<P>
+JNIPort is designed to allow several JVMs to exist at once, since that is the way the JNI
+API is structured.  In practice, there is little need for this (in fact, the current
+crop of Java implementations don't support having more than one in the lifetime of a process).
+It is possible to use JNIPort as if the JMV were a <EM>Singleton</EM>, and the
+<CODE class="Smalltalk">JVM</CODE> class has a few methods like
+<CODE class="Smalltalk">#current</CODE> (which answers &ldquo;the&rdquo; running instance
+if there is one) and <CODE class="Smalltalk">#default</CODE> (which is the same, but will
+also start up a default instance if necessary), to help with this.
+</P>
+<H2><A name="Class Statics">Class Statics</A></H2>
+<P>
+There is a great deal of truth in the observation that &ldquo;in Java, classes are not
+objects&rdquo;. The &ldquo;static&rdquo; fields and methods of a Java class
+are not associated with any object, they float in a sort of global space with
+the Java class serving only to delimit a namespace and define accessibility.
+Of course, for Smalltalk, that Just Won't Do&hellip;
+</P>
+<P>
+JNIPort represents Java classes and interfaces by <DFN>class statics</DFN>.  These objects
+(instances of subclasses of <CODE class="Smalltalk">JavaStatic</CODE>) stand in a 1-to-1
+relationship with Java classes.  They have similar roles to Smalltalk
+classes (though they are not kinds of <CODE class="Smalltalk">Behavior</CODE>), they:
+</P>
+<UL>
+<LI>Know how to invoke the static methods of the Java class.</LI>
+<LI>Know how to read and write the static fields of the Java class or interface.</LI>
+<LI>Know how to create instances of the Java class.</LI>
+<LI>Know their place in the Java class hierarchy.</LI>
+<LI>Know how to do reflection.</LI>
+</UL>
+<P>
+In addition, they can be specialised to a particular Java class, so they may
+also:
+</P>
+<UL>
+<LI>Have methods corresponding to the static methods of the Java class.</LI>
+<LI>Have getter and setter methods for the static fields of the Java class or interface.</LI>
+<LI>Have factory methods corresponding to the constructors of the Java class.</LI>
+</UL>
+<P>
+More strictly, the 1-to-1 relationship is that within the context of a JVM (since
+each JVM has its own collection of class statics) there is a class static for each
+<EM>known</EM> Java class, interface, or type.  For instance
+<CODE class="Java">java.lang.String</CODE> (a class),
+<CODE class="Java">java.util.Iterator</CODE> (an interface),
+<CODE class="Java">java.lang.String[]</CODE> (an array class), and
+<CODE class="Java">byte</CODE> (a primitive type), all have corresponding class statics.
+The class statics for the array classes and primitive types are mainly used by the
+internal machinery of JNIPort, although the array class statics do act as factories for
+creating new Java arrays.
+</P>
+<P>
+Each class static is paired with a Java instance wrapping a reference to a
+<CODE class="Java">java.lang.Class</CODE>.  The class instance is the
+<CODE class="Smalltalk">#classObject</CODE> of the class static, and the class
+static is the <CODE class="Smalltalk">#classStatic</CODE> of the class object.
+</P>
+<P>
+Whenever a new Java class becomes known to JNIPort, it is assigned a corresponding new class
+static.  JNIPort can become aware of classes in several ways, including:
+</P>
+<UL>
+<LI>Calling <CODE class="Smalltalk">JVM>>findClass:</CODE>.</LI>
+<LI>Seeing an instance of a class.</LI>
+<LI>Seeing a subclass, or an instance of a subclass.</LI>
+<LI>
+Using Java's introspection methods such as
+<CODE class="Java">java.lang.Class.forName()</CODE>.
+</LI>
+</UL>
+<P>
+The known class statics are held in the  <A href="#Class Registry">class registry</A>,
+where they normally stay for the lifetime of the JVM, although there are exceptions
+during bootstrapping.
+A later version of JNIPort will provide some means of &ldquo;retiring&rdquo;
+class statics that are no longer needed or used (thus allowing the Java class itself to be
+garbage collected), but this version has no public API for doing so.
+</P>
+<P>
+Class statics are specialised by subclassing.  You can create a subclass of JavaStatic
+and arrange that some Java class, and all its subclasses, will have class statics that
+are instances of your subclass.  This is set up by the class registry during
+<A href="#Bootstrapping">bootstrapping</A>.  These specialised subclasses are
+the <DFN>class-side wrapper classes</DFN>, and they are where the wrapper methods
+live; you can also add whatever helper methods you want or need.  You can create
+wrapper classes by hand, although it's tedious (as I know &mdash; I hand-wrote many
+of the wrapper classes supplied as part of JNIPort), or you can generate them
+automatically with the help of the <A href="wrapper-wizard.html">wrapper generation wizard</A>, 
+or you can have them generated dynamically by using <A href="ghost-classes.html">ghost
+classes</A>.
+</P>
+<P>
+Class statics have another vital role that is internal to JNIPort: they know how to
+wrap references to Java objects in Java Instances of the right kind.
+Each class static knows a Smalltalk class to use to wrap references to instances of its
+Java class, its <DFN>instance class</DFN>.  The instance class is normally the same as
+the instance class for the Java superclass, but that can be changed during bootstrapping,
+and when ghost classes are used.  This is discussed
+in the section about the <A href="#Instance Lifecycle">lifecycle of an instance</A>, below.
+</P>
+One particular class static corresponds to the Java class
+<CODE class="Java">java.lang.Class</CODE>, and that object has a special role to play
+in the mechanism of JNIPort.  This is described in the section about the
+<A href="#Class Static Lifecycle">lifecycle of a class static</A>, below.
+<P>
+</P>
+
+
+<H2><A name="Java Instances">Java Instances</A></H2>
+<P>
+JNIPort represents references to Java objects by instances of (subclasses of)
+<CODE class="Smalltalk">JavaClassInstance</CODE>.  Each instance has a reference to its
+(shared) class static.
+</P>
+<P>
+It is important to realise that these wrap <EM>references</EM> to Java objects,
+and that there can be more than one reference to the same object.  The
+<CODE class="Smalltalk">#=</CODE> and <CODE class="Smalltalk">#hash</CODE> methods are defined
+so that they test for the Java identity of the referred-to objects, so
+<CODE class="Smalltalk">#=</CODE> is true of two references when they refer to the same
+Java object, even though they may not be <CODE class="Smalltalk">#==</CODE> to each other.
+(By the way, the methods <CODE class="Smalltalk">#equals:</CODE> and
+<CODE class="Smalltalk">#hashCode</CODE> are the equivalents of the 
+<CODE class="Java">java.lang.Object.Equals()</CODE> and
+<CODE class="Java">java.lang.Object.hashCode()</CODE> methods, respectively).
+</P>
+<P>
+In some cases, it is desirable or necessary to ensure that references are unique.
+JNIPort includes a facility for making a reference to a Java object <DFN>canonical</DFN>;
+and when this is used, any subsequent references to that object will be mapped to the
+canonical instance.  This is available on a per-instance or per-class basis.  It is not
+the default for most classes, since the &ldquo;interning&rdquo; is expensive and it is
+not normally needed.
+</P>
+<P>
+Internally to JNIPort, instance wrappers have the important role of managing the lifetime
+of the object reference.  The Java VM needs to be told when references are discarded, or else
+it can't do garbage collection properly, so instance wrappers are finalisable objects that
+explicitly release the JNI reference when they die.  Some of the code refers to this, and
+the rest of the mechanism of setting up wrapper objects, as <DFN>managed objects</DFN>.
+</P>
+<P>
+For the user of JNIPort, the important thing about these objects is that they
+act as <DFN>proxies</DFN> for the underlying object:
+</P>
+<UL>
+<LI>Know how to invoke the methods of the Java object.</LI>
+<LI>Know how to read and write the fields of the Java object.</LI>
+<LI>Know what class static they &ldquo;belong to&rdquo;.</LI>
+</UL>
+<P>
+In addition, they can be specialised to a particular Java class, so they may
+also:
+</P>
+<UL>
+<LI>Have methods corresponding to the methods of the Java object.</LI>
+<LI>Have getter and setter methods for the fields of the Java object.</LI>
+</UL>
+<P>
+As with class statics, proxies are specialised by subclassing.
+In this case the custom <DFN>instance-side wrapper classes</DFN> are subclasses of
+<CODE class="Smalltalk">JavaClassInstance</CODE> rather than
+<CODE class="Smalltalk">JavaClassStatic</CODE>, but the idea is otherwise the same.
+</P>
+<P>
+It might be worth explaining that instances can be either <DFN>local</DFN> or
+<DFN>global</DFN>; this is a JNI concept.  JNI has two different kinds of
+references to objects, and they are used and managed in slightly different ways.
+Local references ought to be more efficient, but need to be managed more carefully.
+It is possible that a future version of JNIPort will not use local references at all.
+In any case, for user code, there should be no difference between local and global.
+</P>
+
+<H2>Other Players</H2>
+<P>
+There are some other notable objects in the JNIPort community.  These are mostly
+concerned with the implementation of JNIPort, but they are intended to be visible
+to the JNIPort user.
+</P>
+<H3><A name="Class Registry">The Class Registry</A></H3>
+<P>
+There is one <DFN>class registry</DFN> for each JVM object.  It holds the list of class
+statics that JNIPort knows about.
+</P>
+<P>
+Its role is mostly to ensure that every Java class and type is wrapped in exactly one
+class static (for more details see the <A href="#Class Static Lifecycle">class lifecycle</A>
+section, below).  However it is also able to provide lists of all the known classes, all
+known subclasses of some superclass, and so on.
+</P>
+<H3><A name="Class Index">The Class Index</A></H3>
+<P>
+There is one <DFN>class index</DFN> for each JVM object.  It holds the mapping from the
+names of classes and types (represented as Symbols, in fact) to the corresponding
+class statics.  Classes may appear under more than one name (because of the weird JNI
+naming rules, which are not relevant here &mdash; fortunately); also not all known classes
+will appear in the index, only those that have been looked-up by name.  The index is
+effectively a cache to allow <CODE class="Smalltalk">JVM>>findClass:</CODE> to avoid
+going back to the Java runtime for known classes (which would be slow).
+</P>
+<P>
+(Design note: The class index is actually a minor player, but it has a nasty habit
+of trying to vanish and get its role absorbed into that of some other object &mdash;
+which it then complicates unnecessarily. So I've dragged it out into the light of day
+as a public player to try to stem the evil tendency.)
+</P>
+<H3><A name="Callback Registry">The Callback Registry</A></H3>
+<P>
+There is one <DFN>callback registry</DFN> for each JVM object that supports callbacks.
+It holds references to the objects that &ldquo;tag&rdquo; callbacks (see the section on
+<A href="callbacks.html">callbacks</A>), and is responsible for dispatching the incoming
+callback requests or notifications to the correct handler for each tag.
+</P>
+<H3><A name="Ghost Class Maker">The Ghost Class Maker</A></H3>
+<P>
+There <EM>may</EM> be one <DFN>ghost class maker</DFN> for each JVM object.  If
+there is, then its role is to wait for new Java classes to be registered and then
+drive the creation of corresponding new ghost classes.
+This is discussed a bit more under <A href="#Class Static Lifecycle">class lifecycle</A>,
+below.
+</P>
+<P>
+The ghost class maker is really only a public object because it has to be
+<A href="setup.html">configured</A>.
+</P>
+
+
+<HR>
+<H1><A name="The Play">The Play</A></H1>
+<P>
+This section is about the interactions between the main objects described
+in the first section.  This is almost all about the <EM>implementation</EM> of
+JNIPort &mdash; user-defined objects have no special role &mdash; but an overview
+of how the system works may be helpful.
+</P>
+
+<H2><A name="Instance Lifecycle">The Lifecycle of an Instance</A></H2>
+<P>
+The process starts with a raw JNI reference to some Java object; it may have been
+returned from a Java method call, for instance.  Before JNIPort can do anything
+with the reference it must be wrapped in a Smalltalk object.  The process normally
+starts with the JVM object&hellip;
+</P>
+<P>
+The JVM object's role in life to put other objects in touch with each other.  In
+this case the raw JNI reference needs to find a class static that will generate
+a wrapper/proxy for it.
+</P>
+<P>
+The JVM object starts by using low-level JNI features to get a reference to the Java
+object's class.  This will answer a raw JNI pointer to a class object, and the
+JVM will find a corresponding class static for it as described in the next section.
+The JVM will then ask the newly discovered class static to wrap the original raw JNI
+reference.
+</P>
+<P>
+The class static may have canonical instances, if so then it must first check to
+see if it already has a proxy for the same Java object.  It checks its
+object registry (essentially just a weak set), if it has one, to see if
+there is a match. If so then it releases the raw JNI pointer immediately,
+and returns the pre-existing proxy to the caller.
+</P>
+<P>
+Otherwise it creates a new proxy object.  This will be an instance of the
+class static's &ldquo;instance class&rdquo;, it will hold the raw JNI reference
+and know that it belongs to this class static.
+</P>
+<P>
+If the particular class static is supposed make all instances canonical, then
+it enters the new instance in its object registry.  Finally it returns the new
+instance to the JVM.
+</P>
+<P>
+An optimisation to this process is possible when the correct class static
+is known (with certainty) <EM>before</EM> the raw reference is created.
+In such cases there is no need to ask the JVM to wrap the reference, the class
+static can be asked directly (which saves an expensive class lookup).  Some cases
+where this optimisation can be applied are:
+</P>
+<UL>
+<LI>
+When a JNI method is called that is defined to return a reference to a class object
+</LI>
+<LI>
+When a constructor is called (constructors always return an object of the exact class;
+they can never answer an instance of some subclass).
+</LI>
+<LI>
+When an element of an array of a &ldquo;final&rdquo; class is read.
+</LI>
+<LI>
+When a method that returns an instance of a &ldquo;final&rdquo; class is called.
+</LI>
+<LI>
+When a field holding an instance of a &ldquo;final&rdquo; class is read.
+</LI>
+</UL>
+<P>
+The first three cases are easy to code for and JNIPort applies them wherever possible.
+The last two cases need significantly more messy code, so JNIPort only uses those
+optimisations in ghost methods.
+</P>
+<P>
+This process (of looking up a class static then creating a wrapper object) may
+sound slow, and in fact it is. On my P3 650Mz laptop, JNIPort can wrap a maximum
+of between 10K and 20K object references per second, depending on which
+of the optimisations are applicable.
+</P>
+
+<H2><A name="Class Static Lifecycle">The Lifecycle of a Class Static</A></H2>
+<P>
+The previous sub-section and this one are quite closely intertwined; the lifecycle
+of an instance is strongly affected by its &ldquo;onwing&rdquo; class static, but
+the class static is paired with an <EM>instance</EM> of
+<CODE class="Java">java.lang.Class</CODE>.
+This makes it difficult to describe one separately from the other, it's a
+chicken-and-egg situation. The same problem occurs in the code too, and
+requires special handling as part of <A href="#Bootstrapping">bootstrapping</A>.
+</P>
+<P>
+The lifecycle of a class static starts when the JVM object is asked to find a wrapper
+for a raw JNI reference to an instance of <CODE class="Java">java.lang.Class</CODE>.
+This is a special case of wrapping any Java reference, and the previous section
+talked about that in some detail, so it should suffice here to say that the JVM will
+find the class static corresponding to <CODE class="Java">java.lang.Class</CODE> and
+then ask it to create a proxy for the Java object.
+</P>
+<P>
+We'll call the specific class static for <CODE class="Java">java.lang.Class</CODE> the
+<DFN>Class class static</DFN> (for lack of a snappier name). The Class class static
+now consults the class registry to see if it already has a proxy for
+the same object.  If it has, then it then it releases the raw JNI object reference
+and gives the pre-existing wrapper back to the caller.
+This is an extension of the mechanism for making objects canonical; all instances of
+<CODE class="Java">java.lang.Class</CODE> are automatically interned,
+and kept as <EM>strong</EM> references in the class registry.
+</P>
+<P>
+If the class registry does not find a pre-existing wrapper, then the Class
+class static creates an instance of the correct proxy class for
+<CODE class="Java">java.lang.Class</CODE>, in fact a
+<CODE class="Smalltalk">JavaLangClass</CODE>, and adds it to the registry
+before passing it back to the JVM.
+</P>
+<P>
+So far this hardly differs from the normal processing for wrapping an
+instance of any class with canonical instances (there are some differences
+in the code, but those are mostly about efficiency, e.g. not using Mutexes
+unnecessarily). What is different in this case is that the Class class static
+<EM>also</EM> creates a new class static and pairs it with the new class
+object before registering it.
+</P>
+<P>
+To create the new class static, the Class class static must first choose a
+Smalltalk class for it (I'm sorry if this is getting confusing &mdash; it goes
+with the territory, like the &ldquo;metaclass knot&rdquo; in Smalltalk).  To
+do this it tries to find the most applicable subclass of
+<CODE class="Smalltalk">JavaStatic</CODE> according to the following rules:
+</P>
+<UL>
+<LI>
+If the class is an array class then use <CODE class="Smalltalk">JavaArrayClassStatic</CODE>.
+</LI>
+<LI>
+If the class is an interface then use <CODE class="Smalltalk">JavaInterfaceStatic</CODE>.
+</LI>
+<LI>
+Otherwise the class must be a subclass of <CODE class="Java">java.lang.Object</CODE>;
+use the same class static class as is used for the target's Java superclass.  That
+may involve re-entering this procedure to create a class static for the superclass,
+but the recursion must eventually end with <CODE class="Java">java.lang.Object</CODE>,
+if not before.
+</LI>
+</UL>
+<P>
+You may notice that these rules seem to imply that every normal class will be
+given the same kind of class static (and you may also notice that Java's
+primitive types aren't handled at all by the rules).  The answer is that
+special arrangements are made during <A href="#Bootstrapping">bootstrapping</A>
+to ensure that selected Java classes are given the &ldquo;right&rdquo; class statics.
+For instance the class static for <CODE class="Java">java.lang.ClassLoader</CODE>
+is an instance of the specialised subclass,
+<CODE class="Smalltalk">StaticJavaLangClassLoader</CODE> (yeah, I know, the
+names are getting longer and longer&hellip;).  As a result, once JNIPort is
+up and running, if it sees any new subclass of <CODE class="Java">ClassLoader</CODE>,
+then it will give it a class static that is also a
+<CODE class="Smalltalk">StaticJavaLangClassLoader</CODE>.
+</P>
+<P>
+The new class static and the new class object are now married together and
+initialised.  They will stay associated for the rest of the lifetime of this
+JVM, and any future references to the Java class will be mapped into the
+existing class static.  The class is now considered to be <DFN>registered</DFN>.
+</P>
+<P>
+The instance class of the new class static is set to be the same as that for the Java
+superclass.
+This seems to imply that the same kind of proxy is used for all Java references.
+The answer is roughly the same as for class static classes: the instance
+class can be changed during bootstrapping.  For instance, during bootstrapping
+the class static for <CODE class="Java">java.lang.String</CODE> has its
+instance class set so that any references to Java strings will be wrapped
+in instances of <CODE class="Smalltalk">JavaLangString</CODE>.  (So too
+would subclasses of <CODE class="Java">java.lang.String</CODE>, if it had any.)
+</P>
+<P>
+One final flourish is worth mentioning: if ghost classes are in use, then at
+this point the ghost class maker will be informed that a new class has been
+registered.  Before the class static is returned to the JVM (remember, this
+all started with the JVM being asked to wrap a JNI reference?), the ghost
+class maker will convert it into a ghost class.
+Details are <A href="ghost-classes.html">here</A> but, briefly, it will:
+</P>
+<OL>
+<LI>
+Generate new ephemeral subclasses of the class static class and the instance class.
+</LI>
+<LI>
+Use Java introspection to discover what fields and methods the Java class has.
+</LI>
+<LI>
+Populate the ghost classes with methods that use the low-level JNI APIs to call those
+methods or get/set those fields.
+</LI>
+<LI>
+Replace (using <CODE class="Smalltalk">#become:</CODE>) the class static by an
+instance of the new ghost static class, and tell it that it should use the new
+ghost instance class.
+</LI>
+</OL>
+<P>
+The <A href="setup.html">configuration</A> controls exactly which classes are
+converted into ghosts and which members of those classes are exposed via ghost
+methods.
+</P>
+
+<H2><A name="Bootstrapping">Bootstrapping</A></H2>
+<P>
+JNIPort, being fairly complicated internally, has a correspondingly elaborate
+startup sequence.  Most of it is routine, even dull, and is in any case is not
+relevant to JNIPort users.  One aspect of it, however, is relevant: the process of
+<DFN>bootstrapping</DFN>.  This process initialises the class registry and sets up
+the mechanism for wrapping Java classes and objects.
+</P>
+<P>
+I call it &ldquo;bootstrapping&rdquo; because that mechanism is managed largely
+by the class static for <CODE class="Java">java.lang.Class</CODE>, but that
+object (a class static like any other) depends on the machinery.  So there is
+some slightly tricky code for avoiding the circularity while setting up the
+initial objects in the class registry.  The
+class statics for <CODE class="Java">java.lang.Class</CODE> and
+<CODE class="Java">java.lang.Object</CODE> and instance classes for
+<CODE class="Java">java.lang.Class</CODE>, <CODE class="Java">java.lang.Object</CODE>,
+and <CODE class="Java">java.lang.String</CODE> all refer to, and depend on, each
+other. Once that knot of mutually-referential objects has been created, the class
+registry enters the second phase of bootstrapping.
+</P>
+<P>
+The second phase is where custom subclasses of <CODE class="Smalltalk">JavaInstance</CODE>
+and <CODE class="Smalltalk">JavaStatic</CODE> are registered as the preferred
+wrapper classes for corresponding Java classes.  The mechanism might strike you
+as a bit of a hack (it should, because it <EM>is</EM> a hack), but it is
+reasonably simple, and it is normally only used during bootstrapping.
+</P>
+<P>
+Each subclass of <CODE class="Smalltalk">JavaInstance</CODE> or
+<CODE class="Smalltalk">JavaStatic</CODE> is given a chance to <DFN>register</DFN>
+with the JVM object that is starting up.  The class is sent the
+<CODE class="Smalltalk">#registerWrapperWith:</CODE> message (passing the new
+JVM as a parameter). Superclasses are always asked to register before their
+subclasses, but there is no defined ordering other than that.  The default
+handing is as follows:
+</P>
+<UL>
+<LI><P>
+If the class does not think that it is a wrapper class (it may be an
+abstract superclass of concrete wrappers) then it ignores the message.
+</P></LI>
+<LI><P>
+Otherwise, the class will do a <CODE class="Smalltalk">#findClass:</CODE> on
+the name of the Java class that it wraps.  That will answer a class static
+in the normal way, but because the class registry is not yet fully initialised,
+the new class static will <EM>not</EM> reflect the intended custom wrapper
+classes.  So that has to be fixed.
+</P></LI>
+<LI><P>
+If the Smalltalk class is an instance-side wrapper, let's say the Smalltalk class is
+<CODE class="Smalltalk">JavaIoReader</CODE> which is intended to wrap instances of
+<CODE class="Java">java.io.Reader</CODE>, then the instance class of the new class
+static will be wrong.  It'll probably be <CODE class="Smalltalk">JavaLangObject</CODE>
+&mdash; the default.  In this case <CODE class="Smalltalk">JavaIoReader</CODE>
+can register itself as the proper instance class by changing the instance
+class reference held by the class static.
+</P></LI>
+<LI><P>
+If the Smalltalk class is a class-side wrapper, for example
+<CODE class="Smalltalk">StaticJavaLangSystem</CODE> corresponding to
+<CODE class="Java">java.lang.System</CODE>, the new class static will be
+an instance of the wrong class (it'll be a
+<CODE class="Smalltalk">StaticJavaLangObject</CODE>).  So
+<CODE class="Smalltalk">StaticJavaLangSystem</CODE> creates a new instance of itself,
+initialised with the data from the &ldquo;wrong&rdquo; class static, and uses
+<CODE class="Smalltalk">#become:</CODE> to replace the old with the new.
+</P></LI>
+<LI><P>
+A small subtlety here is that after the class static has been modified or replaced,
+the class registry must be updated by making corresponding changes to any
+other class static that have &ldquo;inherited&rdquo; its settings.  In the
+current implementation this is unnecessary, since there won't be any, but
+that cannot be relied on for future implementations.  The nett effect
+is that any particular class static <EM>may</EM> change several times during
+bootstrapping.
+</P></LI>
+</UL>
+<P>
+By the time bootstrapping is finished, each Java class that has a custom
+wrapper class (on class or instance side) will have a class static in the
+registry, and that static will reflect the intended wrappers.  The class
+static and instance class should now be stable for the rest of the life
+of the owning JVM.   The exceptions are when ghost classes are used (in which
+case the ghost classes will be installed later using much the same mechanism)
+or when you manually register a new wrapper class (say, by using the wrapper
+generation wizard).
+</P>
+<P>
+You may notice that instance wrappers and class-side wrappers are
+installed independently &mdash; a Java class may have an instance wrapper, or
+a class wrapper, or both, and if it has both then the two do not need to know
+about each other.  Also there is no requirement that the class hierarchy of the
+wrapper classes follows the Java class hierarchy, though it would be confusing
+if the two were too far out of synch.  For instance, the JNIPort wrappers for
+<CODE class="Java">java.lang.String</CODE> and the various Java array classes
+all share an abstract superclass, <CODE class="Smalltalk">JavaAggregate</CODE>,
+even though there is no formal relationship between them in Java.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

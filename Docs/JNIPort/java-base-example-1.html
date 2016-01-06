@@ -1,0 +1,291 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Examples of Basic JNIPort</H1>
+<P>
+This section is an example of using the lowish-level interfaces of package 'CU Java Base',
+which are described <A href="java-base.html">here</A>.
+We read a .ZIP file using Java's zip file handling classes.
+</P>
+<P>
+A <A href="wrapper-example-1.html">parallel example</A> uses the higher-level
+facilities provided by automatic wrapper generation (and especially, ghost classes)
+to perform the same tasks.
+</P>
+<P>
+One general point about this example: we use the low-level methods directly
+throughout, which is certainly not how you would use them in practice.  The better
+way is to define wrapper classes and provide convenient Smalltalk-style methods
+that are built on top of the low-level API.  In fact you'd probably want to use
+the Wrapper Wizard to help with this, rather than do it all by hand.
+</P>
+<P>
+Ensure that a JMV is running, and open a new workspace.  We start,
+as always, by getting a reference to the JVM object:
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+</CODE></PRE>
+<P>
+Now we need to get a reference to the class static standing for the Java class,
+<CODE class="Java">java.util.zip.ZipFile</CODE>:
+</P>
+<PRE><CODE class="Smalltalk">	zfClass := jvm findClass: #'java.util.zip.ZipFile'.
+</CODE></PRE>
+<P>
+Now we'll open a ZIP file.  For this example, we'll use the DolphinJNIHelper.zip file
+that should be in the Metagnostic\Extras folder.  Use the file dialog to find that file:
+<P>
+</P>
+<PRE><CODE class="Smalltalk">	zfName := FileOpenDialog showModal.
+</CODE></PRE>
+<P>
+Now we create a new ZipFile object from that filename, this will be equivalent to the Java code:
+</P>
+<PRE><CODE class="Java">	String zfName = // whatever;
+	java.util.zip.ZipFile zipfile = new java.util.zip.ZipFile(zfName);
+</CODE></PRE>
+<P>
+At the level of this API, we have to build an argument array explicitly.  First we convert
+the Smalltalk String to a Java String, then allocate a <CODE class="Smalltalk">JNIValueArray</CODE>
+big enough to hold 1 argument, and add the string to it.  It is <STRONG>vitally</STRONG>
+important that we keep a separate reference to the Java string, because the argument
+array (which is a kind of <CODE class="Smalltalk">ExternalStructure</CODE>) does not
+do so itself. (If you start getting inexplicable <CODE class="Java">NullPointerExceptions</CODE>
+then it's quite probably because you've forgotten this point.)
+</P>
+<PRE><CODE class="Smalltalk">	zfName := zfName asJavaString: jvm.
+	args := (JNIValueArray new: 1)
+			objectAt: 1 put: zfName;
+			yourself.
+</CODE></PRE>
+<P>
+<P>
+Now we want to call the constructor.  All references to Java methods (and fields, in fact)
+must have a &ldquo;signature&rdquo; string (necessary because Java allows method overloading).
+The signature for a constructor that takes a String argument is '(Ljava/lang/String;)V'. For
+an explanation of this odd construction, see the <A href="jni-names.html">rules</A> for
+forming signatures.  Once we have worked out the proper signature, we can use that and the
+argument vector to call the constructor:
+</P>
+<PRE><CODE class="Smalltalk">	sig := '(Ljava/lang/String;)V'.
+	zipfile := zfClass callConstructorSignature: sig withArguments: args.
+</CODE></PRE>
+<P>
+If there are no arguments to the constructor, then a simpler form can be used (since the
+signature is necessarily '()V'), the method is <CODE class="Smalltalk">#callConstructor</CODE>.
+</P>
+<P>
+We may as well find out how many entries there are in the ZIP file, in this case the Java
+method takes no arguments and returns an <CODE class="Java">int</CODE> so we can use a
+pre-packaged shortcut to avoid messing with signatures:
+</P>
+<PRE><CODE class="Smalltalk">	zipfile callIntMethod: 'size'.
+		"--> 6"
+</CODE></PRE>
+<P>
+Now we'll iterate over the elements of the ZipFile; we start by getting the Java
+<CODE class="Java">java.util.Enumeration</CODE> iterator.  In this case we have to
+provide a signature:
+</P>
+<PRE><CODE class="Smalltalk">	sig := '()Ljava/util/Enumeration;'.
+	entries := zipfile callObjectMethod: 'entries' signature: sig.
+</CODE></PRE>
+<P>
+The <CODE class="Smalltalk">entries</CODE> object is an instance of some Java class
+that implements the <CODE class="Java">java.util.Enumeration</CODE> interface, (for
+some reason, ZipFile returns a <CODE class="Java">Enumeration</CODE>
+rather than the newer <CODE class="Java">Iterator</CODE>); it is actually an instance
+of some inner class in ZipFile (so its class name is something like
+&ldquo;java.util.zip.ZipFile$2&rdquo;).  It has the Java methods 
+<CODE class="Java">hasMoreElements()</CODE> and
+<CODE class="Java">nextElement()</CODE> that are guaranteed by the interface.
+So we could iterate over the entries with a loop like:
+</P>
+<PRE><CODE class="Smalltalk">	entries := zipfile callObjectMethod: 'entries' signature: sig.
+	[entries callBooleanMethod: 'hasMoreElements'] whileTrue:
+		[| next |
+		next := entries callObjectMethod: 'nextElement'.
+		Transcript display: next; cr].
+</CODE></PRE>
+<P>
+Which is ugly, even though we can take advantage of the shortcut method
+<CODE class="Smalltalk">#callObjectMethod:</CODE> which &ldquo;knows&rdquo; that
+the signature is '()Ljava/lang/Object'.
+JNIPort comes with a better way to iterate over a
+<CODE class="Java">Enumeration</CODE> (or an <CODE class="Java">Iterator</CODE>).
+Sending <CODE class="Smalltalk">#asAnEnumeration</CODE> (or
+<CODE class="Smalltalk">#asAnIterator</CODE>) to the
+<CODE class="Smalltalk">entries</CODE> object will answer an adaptor that implements
+the basics of the &lt;ReadableStream&gt; protocol.  You can then
+use the common Smalltalk iteration style:
+</P>
+<PRE><CODE class="Smalltalk">	entries := (zipfile callObjectMethod: 'entries' signature: sig)
+			asAnEnumeration.
+	[entries atEnd] whileFalse:
+		[Transcript display: entries next; cr].
+</CODE></PRE>
+<P>
+or, if you prefer:
+</P>
+<PRE><CODE class="Smalltalk">	entries := zipfile callObjectMethod: 'entries' signature: sig.
+	entries asAnEnumeration do:
+		[:each | Transcript display: each; cr].
+</CODE></PRE>
+<P>
+which is marginally more efficient than the explicit loops, since it avoids repeatedly
+looking up the method names/signatures.
+</P>
+<P>
+By the way, the adaptor object only implements a small part of the Smalltalk
+&lt;ReadableStream&gt; protocol.  You can get a more complete implementation
+by either writing the other wrapper methods yourself <I>&lt;grin&gt;</I> or by
+asking for a further level of adaptor by sending
+<CODE class="Smalltalk">#asReadStream</CODE>.
+</P>
+<P>
+Now to read one of the files from inside the ZipFile.  We start by getting the
+appropriate ZipEntry, this will be the equivalent of the Java code:
+</P>
+<PRE><CODE class="Java">	java.util.zip.ZipEntry entry
+		= zipfile getEntry("DolphinJNIHelper/DolphinJNIHelper.h");
+</CODE></PRE>
+<P>
+The signature in this case is '(Ljava/lang/String;)Ljava/util/zip/ZipEntry;',
+and we also have to build another argument array, so the code is:
+</P>
+<PRE><CODE class="Smalltalk">	sig := '(Ljava/lang/String;)Ljava/util/zip/ZipEntry;'.
+	name := 'DolphinJNIHelper/DolphinJNIHelper.h' asJavaString: jvm.
+	args := (JNIValueArray new: 1)
+			objectAt: 1 put: name;
+			yourself.
+	entry := zipfile
+			callObjectMethod: 'getEntry'
+			signature: sig
+			withArguments: args.
+</CODE></PRE>
+<P>
+By now, you should have a very clear idea of why I wrote the wrapper generation
+features.
+</P>
+<P>
+If you check the Java documentation then you'll see that you can ask
+the ZipEntry for a fair raft of data.  What you can't do is get the contents of
+the file, for that you have to go back to the ZipFile (that's just the way the
+Java class is designed), so: 
+</P>
+<PRE><CODE class="Smalltalk">	sig := '(Ljava/util/zip/ZipEntry;)Ljava/io/InputStream;'.
+	args := (JNIValueArray new: 1)
+			objectAt: 1 put:entry;
+			yourself.
+	stream := zipfile
+			callObjectMethod: 'getInputStream'
+			signature: sig
+			withArguments: args.
+</CODE></PRE>
+<P>
+This answers an object that is of some subclass of
+<CODE class="Java">java.io.InputStream</CODE>.  Because there is a registered
+wrapper class for <CODE class="Java">InputStream</CODE>, actually 
+<CODE class="Smalltalk">JavaIoInputStream</CODE>, the <CODE class="Smalltalk">stream</CODE>
+object will be an instance of some subclass of that.  The mismatch between Java's IO
+design and Smalltalk's is quite bad, and I haven't been able to create a completely
+Smalltalk-flavoured interface to Java streams, however you can ask the stream for
+its <CODE class="Smalltalk">#upToEnd</CODE> (you can't use
+<CODE class="Smalltalk">#contents</CODE> because that requires a positionable stream
+and Java's streams aren't arbitrarily seekable).  Since the stream in question is
+binary, the answered collection will be a <CODE class="Smalltalk">ByteArray</CODE>.
+So we can get the contents of the file by saying:
+</P>
+<P>
+</P>
+<PRE><CODE class="Smalltalk">	bytes := stream upToEnd.
+	Transcript nextPutAll: bytes asString; flush.
+</CODE></PRE>
+<P>
+That's almost the end of the example.  We may as well clean up properly, though:
+</P>
+<PRE><CODE class="Smalltalk">	zipfile callVoidMethod: 'close'.
+</CODE></PRE>
+<P>
+Finally, to see an example of what happens when Java code throws exceptions,
+try getting a ZipEntry again now that the ZipFile has been closed:
+</P>
+<PRE><CODE class="Smalltalk">	sig := '(Ljava/lang/String;)Ljava/util/zip/ZipEntry;'.
+	name := 'xxx' asJavaString: jvm.
+	args := (JNIValueArray new: 1)
+			objectAt: 1 put: name;
+			yourself.
+	entry := zipfile
+			callObjectMethod: 'getEntry'
+			signature: sig
+			withArguments: args.
+</CODE></PRE>
+<P>
+Which should give a normal Smalltalk walkback.  You can trap the error in various
+ways, one is:
+</P>
+<PRE><CODE class="Smalltalk">	[zipfile callObjectMethod: 'getEntry' signature: sig withArguments: args]
+		on: JavaException
+		do: [:err | err notify].
+</CODE></PRE>
+<P>
+Another:
+</P>
+<PRE><CODE class="Smalltalk">	exClass := jvm findClass: #'java.lang.IllegalStateException'.
+	[zipfile callObjectMethod: 'getEntry' signature: sig withArguments: args]
+		on: exClass
+		do: [:err | Transcript display: 'Too bad'; cr].
+</CODE></PRE>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

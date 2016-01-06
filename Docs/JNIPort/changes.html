@@ -1,0 +1,233 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>JNIPort Change History</H1>
+<P>
+This page is just a list of changes to the code.  I'm not following any particular
+pattern, sometimes I'll list small changes individually, other times I'll just bunch
+them up.  I probably won't even list very small changes (the package version number will
+change, though). Depends on my mood&hellip;
+</P>
+<P>
+This software is (supposedly) under active development, so I don't bother to increment the major
+version number for trivial functional changes (it'd be far too much work).
+</P>
+<P>
+Perhaps someday I'll populate this page directly from STS.
+</P>
+<HR>
+<P><strong>
+This version of JNIPort is known not to work with the recently released Dolphin 6.
+</strong></P>
+<HR>
+<DL>
+
+<DT>2005-12-09</DT>
+<DD>
+<P>
+'CU Java Base.pac' 1.31 &mdash; Fairly major redesign of the way that Mutexes are used, we
+now have one shared mutex that is used for just about everything.  Note: this is rather new
+code, and although it <em>seems</em> to work, there is always the possibility that I've
+introduced a new class of deadlock, or something equally horrible&hellip;
+</P>
+<P>
+'CU Java Ghost Classes.pac' 1.10 &mdash; several changes to use the new global Mutex.
+</P>
+</DD>
+
+<DT>2005-10-15</DT>
+<DD>
+<P>
+(I'm not sure what has happened to the change list entries since 2005-01-31, I'm sure I made
+some but they seem to have vanished !)
+</P>
+<P>
+Fairly extensive changes to add a new feature: &ldquo;supplementary classloaders&rdquo;.
+These are still experimental (which mostly just means that I haven't bothered to write
+documentation for them yet) but the general idea is that they bring the inherent functionality
+of Java's classloaders into JNIPort in a managed way.  You can define as many of these as you
+like, and enable/disable them dynamically.  See the class comment on
+<code class="Smalltalk">SupplementaryClassloaderTree</code> and
+<code class="Smalltalk">SupplementaryClassloader</code> for more explanation.
+</P>
+<P>
+Also refactored the responsibility for finding classes into an identifiable role, so that
+<code class="Smalltalk">SupplementaryClassloader</code>s and <code class="Smalltalk">JVM</code>s
+are now both kinds of <code class="Smalltalk">&lt;javaClassFinder&gt;</code> (as, indeed are.
+<code class="Smalltalk">JavaLangClassLoader</code>s).
+</P>
+<P>
+Also added a new page to the Status Monitor which shows the current state of any supplementary
+classloaders.
+</P>
+</DD>
+
+<DT>2005-01-31</DT>
+<DD>
+<P>
+'CU Java Ghost Classes.pac' 1.04 &mdash; Preliminary implementation of a &ldquo;lazy&rdquo; version
+of the GhostClassMaker.  This uses stub objects and DNU handling to postpone the generation of
+ghost methods until they are needed.  Since that involves a lot of reflective work, it tends to
+pull in all sorts of extra Java classes, and they, in turn, also cause the generation of ghost
+classes.  Using the lazy scheme acts to break that loop, and result in far fewer classes ever
+being loaded.
+</P>
+<P>
+To use it, put a single JVMLazyGhostClassMaker to the JVM options under jniPortSettings/watcherClasses.
+<em>Don't</em> attempt to use a normal JVMGhostClassMaker at the same time as
+a JVMLazyGhostClassMaker!
+</P>
+</DD>
+
+<DT>2005-01-30</DT>
+<DD>
+<P>
+Small but fairly wide-spread changes to handle the mess created by the &ldquo;covariant returns&rdquo;
+in Java 5.  This has required a new class generation option, #ignoreBridgeMethods.  Made some
+minor improvements to the class generation wizard's UI while I was at it.
+</P>
+</DD>
+
+<DT>2005-01-26</DT>
+<DD>
+<P>
+'CU Java Base.pac' 1.17 &mdash; Some re-arrangement of the way the JVM object initialises itself,
+plus some extensions to support integer-valued settings in JVMSubSettings.  Both in order to
+support the changes to the Status Monitor.
+</P>
+<P>
+'CU Java Status Monitor.pac' 1.10 &mdash; Added a new set of per-JVM options that are only used
+by the status monitor.  New options allow you to set the initial 'Update Interval' and 'Sample
+Size' for each JVM, these are used from when the corresponding JVM starts up so you don't need
+to change it every time.  History/status monitoring now starts before the JVM begins loading
+any ghost classes, etc.  Changed the gobal 'JavaDoc root' to be a ;-separated search path, and
+also added a per-JVM search path.  F12 from the classes pane will now search the JVM-specific path
+then the global path looking for JavaDocs.
+</P>
+</DD>
+
+<DT>2004-09-17</DT>
+<DD>
+<P>
+'CU JNI.pac' 1.04 &mdash; Now open HKLM in readonly mode when trying to find a jvm.dll to run.
+</P>
+</DD>
+
+<DT>2004-03-11</DT>
+<DD>
+<P>
+'CU Java Base.pac' 1.12 &mdash; Added call to CompiledCode class>>initializeInfoCache as part
+of shutdown sequence (the cache could prevent the entire network of JNIPort objects from being GCed).
+</P>
+</DD>
+
+<DT>2004-01-09</DT>
+<DD>
+<P>
+'CU Java Base.pac' 1.10 and 'CU Java Status Monitor.pac' 1.08 &mdash; Very minor cosmetic bugfixes.
+</P>
+</DD>
+
+<DT>2003-12-07</DT>
+<DD>
+<P>
+'CU JNI.pac' 1.01 &mdash; Tweaked the checked JNI methods to use clean blocks.  It costs nothing
+and should save a few nanoseconds&hellip;
+</P>
+</DD>
+
+<DT>2003-11-01</DT>
+<DD>
+<P>
+'CU Java Status Monitor.pac' 1.06 &mdash; Launching class's JavaDoc now works with Mozilla too.
+</P>
+</DD>
+
+<DT>2003-10-24</DT>
+<DD>
+<P>
+'CU Java Base.pac' 1.05 &mdash; Added more bounds checking on #from:to:keysAndValuesDo:.
+</P>
+<P>
+'CU Java Status Monitor.pac' 1.05 &mdash; Added alpha-blend support (if US Layered View
+is installed).
+</P>
+</DD>
+
+<DT>2003-08-02</DT>
+<DD>
+<P>
+'CU Java Status Monitor.pac' 1.04 &mdash; Added timestamp for JVM's death.
+</P>
+</DD>
+
+<DT>2003-06-20</DT>
+<DD>
+<P>
+'CU Java Status Monitor.pac' 1.02 &mdash; Argh! I'd left a call to Symbol>>value: in the
+status page.
+</P>
+</DD>
+
+<DT>2003-06-18</DT>
+<DD>
+<P>
+'CU Java Wrapper Generation.pac' 1.01 &mdash; Now correctly trap and trace exceptions
+during code generation.
+</P>
+</DD>
+
+</DL>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

@@ -1,0 +1,262 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>F.M.B. for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>F.M.B. for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><A href="index.html">Goodies</A></P>
+		<P><A href="JNIPort.html">JNIPort</A></P>
+		<P><A href="ZKit.html">Z-Kit</A></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><A href="SpaceBreakdown.html">Space Breakdown</A></P>
+		<P><strong>F.M.B.</strong></P>
+		<P><A href="Ghoul.html">Ghoul</A></P>
+		<P><A href="Miscellanea.html">Miscellanea</A></P>
+		<P><A href="Experiments.html">Experiments</A></P>
+		<P><A href="Changes.html">Changes</A></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<P>
+FMB (the Filtering Method Browser) is a simple hack to provide a more flexible
+kind of method browser.  In essence, it just shows a list of all the methods in the
+system, reduced by applying one or more &ldquo;filters&rdquo; to select methods.  Since
+the list of filters can be changed interactively, it provides a way of browsing for
+methods using more sophisticated selection criteria than is easy to do with the standard
+browsing tools.
+</P>
+<P>
+The FMB is a normal method browser enhanced with a filter panel.  This panel
+holds a list of filter objects that determine which of the methods are be displayed.
+A picture will probably help show what I mean, so here is one:
+</P>
+<P>
+<IMG src="FMB.gif" alt="Filtering Method Browser showing 10 methods">
+</P>
+<P>
+In this case, the filters are set to show all the methods on Set that are in the
+Dolphin package, but not in the virtual method category &ldquo;*-overriden&rdquo;
+(that category is one of my extensions, you won't find it in the standard image,
+but it is a category of all methods that are overriden in some subclass).  The
+effect is to show that there are only 10 methods on Set that are not overriden.
+</P>
+<P>
+By the way, I've scrunched everthing up in that example to make the picture smaller
+&ndash; I normally use a much bigger window for the FMB.
+</P>
+<H3>Filters</H3>
+<P>
+The concept of the filters is actually slightly blurry &ndash; what the filter panel
+holds is actually just a list of <em>Objects</em> and it's up to each object to decide
+what methods are &ldquo;relevant&rdquo; to it.
+</P>
+<P>
+You can add to the list of filters by using drag and drop from any of the system browsers
+that support it.   You can also add objects to the list by using the filters menu &ndash; you
+can add an arbitrary object by evaluating an expression, or there's a handfull of
+prepackaged options that you can use.  I trust the menu is self-explanatory enough&hellip;
+</P>
+<P>
+<IMG src="FMB-menu.gif" alt="Filtering Method Browser showing its filter menu">
+</P>
+<P>
+Objects indicate how they are relevant to methods by implementing the
+<code>#isRelevantToMethodBlock</code> method, this is expected to answer a block (or other
+&lt;monadicValuable&gt;) that takes a <code>CompiledMethod</code> as its single parameter
+and answers <code>true</code> if the method is relevant to that object.  The FMB includes
+a bunch of implementations of <code>#isRelevantToMethodBlock</code>, but of course you can
+always extend or change them.  By default, the ways that
+objects filter methods are (by class):
+</P>
+<DL>
+<DT><code>Behavior</code> (i.e. <code>Class</code>)</DT>
+<DD>
+Selects methods that belong to that class or its metaclass.
+</DD>
+<DT><code>BlockClosure</code></DT>
+<DD>
+If the BlockClosure is monadic &ndash; takes a single parameter &ndash; then it will be
+used directly as a filter.  That is, it will be evaluated for each method, and provided that
+it answers <code>true</code>, then that method will have passed the filter.  If it is not
+monadic, then the BlockClosure is treated just like any other Object (see below).
+</DD>
+<DT><code>CompiledMethod</code></DT>
+<DD>
+Selects all <em>implementations</em> of the same method, that is any methods that are all overrides
+of the same root method.  (I'm a little unsure that this is the most convenient interpretation
+to use.  I may change it in a later version)
+</DD>
+<DT><code>MethodCategory</code></DT>
+<DD>
+Selects all methods in that category.
+</DD>
+<DT><code>MethodProtocol</code></DT>
+<DD>
+Selects all methods in that protocol.  That is, methods with a selector that is in the protocol,
+and which belong to a class conforming to the protocol.
+</DD>
+<DT><code>Object</code></DT>
+<DD>
+The default.  Selects methods that refer to that object (i.e. include it in their literals
+lists).  This isn't wildly useful, it's just a handly fallback.
+</DD>
+<DT><code>Package</code></DT>
+<DD>
+Selects methods that are in that package.  This can be a bit slow, so it's generally
+better to put Packages low down on the list of filters, so that they are applied to a
+smaller set of methods.
+</DD>
+<DT><code>PackageFolder</code></DT>
+<DD>
+Selects methods that are in packages in or below that folder.  Even more than Package filters,
+this can be slow.
+</DD>
+<DT><code>String</code></DT>
+<DD>
+Selects methods with that exact text (including case, unfortunately) somewhere in their source.
+</DD>
+<DT><code>Symbol</code></DT>
+<DD>
+Selects methods that refer to that Symbol.  This is slightly different from the default
+(<code>Object</code>) case because special selectors like <code>#at:</code> are also handled
+(albeit, scanning for special selectors is slow, since it involves decompiling the bytecodes,
+rather than just looking at the methods' literals).
+</DD>
+</DL>
+<H3>Filter Modes and &ldquo;All&rdquo; and &ldquo;Any&rdquo; Modes</H3>
+<P>
+The FMB uses <em>modes</em> (I'm afraid &ndash; I couldn't think of a way of providing the
+power I needed without making the UI slightly modal).  The modes are controlled from the
+filter menu, or from the toolbar:
+</P>
+<IMG src="FMB-detail.gif" alt="The modes toolbar of the FMB">
+<P>
+Each filter can be in one of three states: normal, inverted, or disabled (indicated by a green
+tick, an inverted red tick, or a dash, respectively).  Inverting a filter changes its sense, so
+that instead of selecting methods that are relevant to the object, it selects methods that are
+<em>not</em> relevant.  Disabling a filter just turns it off temporarily without removing it
+from the list.
+</P>
+<P>
+There is also a global mode, the FMB operates either in &ldquo;All&rdquo; mode or in
+&ldquo;Any&rdquo; mode.  In <dfn>All</dfn> mode, the FMB displays the methods that pass
+<em>all</em> of the filters; in <dfn>Any</dfn> mode, it displays the methods that pass
+<em>at least one</em> of the filters.  (The icons, by the way, are taken from the standard
+logic symbols; logicians use an upside-down A, &ldquo;&forall;&rdquo;, to mean that all
+objects have some propery, and a backwards E, &ldquo;&exist;&rdquo;, to mean that at least
+one object has the property.)
+</P>
+<H3>Using it</H3>
+<P>
+Should be straightforward.  I hope.
+</P>
+<P>
+It installs itself as an &ldquo;extra tool&rdquo; in the Dolphin system folder. You
+can start it from there or from the Tools&rArr;Additional tools menu of any Dolphin
+window.
+</P>
+<P>
+When it comes up, it is in &ldquo;All&rdquo; mode, and there are no filters, so (since
+every method in the system passes all of the filters) it shows a list of all the methods
+there are.  You can add filters to the list by drag-and-drop, or by using the filter
+menu.  Filters are initially disabled (for perfomance reasons; I may make this configurable
+one day).  You can enable them using the filter menu, or the toolbar, or they cycle through
+their three states if you double-click on them.
+</P>
+<P>
+A word about performance.  Since the FMB is displaying a list filtered down from <em>all</em>
+the methods in the system, there is obviously going to be scope for it to be slow.  On my
+machine (a 650Mz P3) with some 37000 methods in the system, changing simple filters takes
+less than a second, which I find reasonably acceptable.  It may not be OK at all on slower
+machines (or for people with less patience than me).  Some filters are (as I mentioned
+earlier) quite slow, so I advise putting them low on the list of filters, so that faster
+filters will have reduced the number of methods they have to process.
+</P>
+<P>
+The tool's a bit clunky in places, I admit, but I find it useful.  Please let me know if
+you have any suggestions or problems.
+</P>
+<HR>
+<H3>Packages</H3>
+
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Package sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>CU Filtering Method Browser</TD>
+		<TD align="right">61014</TD>
+		<TD>9.00</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<P></P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Prerequisite packages' sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Package-relative File Locator">CU Package-relative File Locator</A></TD>
+		<TD align="right">11829</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Sortblocks">CU Sortblocks</A></TD>
+		<TD align="right">16398</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU String Extensions">CU String Extensions</A></TD>
+		<TD align="right">6885</TD>
+		<TD>1.00</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	--></TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+</BODY>

@@ -1,0 +1,337 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>Z-Kit for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>Z-Kit for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><A href="index.html">Goodies</A></P>
+		<P><A href="JNIPort.html">JNIPort</A></P>
+		<P><strong>Z-Kit</strong></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><A href="SpaceBreakdown.html">Space Breakdown</A></P>
+		<P><A href="FMB.html">F.M.B.</A></P>
+		<P><A href="Ghoul.html">Ghoul</A></P>
+		<P><A href="Miscellanea.html">Miscellanea</A></P>
+		<P><A href="Experiments.html">Experiments</A></P>
+		<P><A href="Changes.html">Changes</A></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<P>
+This collection of packages provides facilities for handling compressed data; including
+ZIP file handling, and streaming [de]compression using zlib, gzip, or bzip2.  It also includes
+the ability to read and write UNIX tar files.
+</P>
+<P>
+The [de]compression itself is provided by two external DLLs.
+The <a href="http://www.gzip.org/zlib/" target="_blank">zlib</a> library is used for
+zlib compression (aka &ldquo;Deflate&rdquo; compression) and gzip compression (which is
+just the same compression algorithm with different headers and trailers on the data).
+The <a href="http://sources.redhat.com/bzip2/" target="_blank">bzip2</a> library is
+used for (surprise!) bzip2 compression. BZip2 uses a block compression algorithm which
+often provides superior compression to zlib, albeit at some cost in time and memory.
+</P>
+<P>
+<em>Many</em> thanks to by Jean-loup Gailly and Mark Adler, the authors of zlib, and
+to Julian Seward, who wrote libbzip2, for making these remarkably useful libraries available.
+</P>
+<P>
+I don't include the DLLs themselves in this download; that seems to be the easiest way to
+ensure that I am complying with the conditions on redistribution (not that those conditions are
+in any way onerous for either library).  Much more importantly, it ensures that I am not
+distributing a corrupt or out-of-date version of the DLLs.  My code was all developed using
+zlib version 1.2.1, and libbzip2 version 1.0.0.
+</P>
+<P>
+To use zlib or gzip compression (which is also used by Zip files) you will need a copy
+of ZLIB1.DLL, which is the <em>official</em> build of zlib for Windows (there are confusingly
+many other builds &mdash; see the zlib
+<a href="http://www.gzip.org/zlib/DLL_FAQ.txt" target="_blank">FAQ</a>).  ZLIB1.DLL is available
+pre-built for Windows <a href="http://www.gzip.org/zlib/" target="_blank">here</a> (about half-way
+down the page).  You should put it somewhere that Dolphin can find it, either on your %PATH% or
+in the Dolphin installation folder.
+</P>
+<P>
+To use bzip2 compression you will need a copy of LIBBZ2-1.?.?.DLL.  That DLL is available pre-built
+for Windows <a href="http://sources.redhat.com/bzip2/#bzip2-older" target="_blank">here</a>
+(for some reason, the link is in the middle of the &ldquo;Getting an older version&rdquo; section).
+You will have to rename it to LIBBZ2-1.DLL, and should put it somewhere that Dolphin can find it,
+either on your %PATH% or in the Dolphin installation folder.
+</P>
+<P>
+The packages are:
+</P>
+<DL>
+
+	<DT><B><A name="CU ZLib Base">ZLib Base</A></B></DT>
+	<DD>
+	<P>
+	A low-level wrapper for the zlib library, ZLIB1.DLL.  This exposes the whole of
+	the zlib API except the plethora of functions for treating gzip files like 'C'
+	<code class="C">&lt;stdio&gt;</code> (for which I can see little use in Smalltalk).
+	</P>
+	</DD>
+
+	<DT><B><A name="CU ZLib Streams">ZLib Streams</A></B></DT>
+	<DD>
+	<P>
+	Three Stream classes built on top of zlib compression.
+	<P>
+	Two kinds of write stream; these are filters that are attached to another
+	<code class="Smalltalk">WriteStream</code> and either compress or decompress
+	the data they receive before forwarding it to the underlying stream.
+	</P>
+	<P>
+	A decompressing read stream.  This is attached to an existing
+	<code class="Smalltalk">ReadStream</code> supplying compressed data, and decompresses
+	it as you read.  This also provides a configurable amount of &ldquo;push back&rdquo; data,
+	in order to support algorithms that require limited read-ahead
+	(<code class="Smalltalk">#nextLine</code> and <code class="Smalltalk">#nextWord</code>,
+	for instance).
+	</P>
+	<P>
+	These streams can be configured to use the various formats and compression levels provided
+	by zlib, including most of the &ldquo;advanced&rdquo; features of that library.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU ZLib Streams Extras">ZLib Streams Extras</A></B></DT>
+	<DD>
+	<P>A few trivial loose methods to supplement the ZLib Streams package.<P>
+	</DD>
+
+	<DT><B><A name="CU BZip2 Base">BZip2 Base</A></B></DT>
+	<DD>
+	<P>
+	A low-level wrapper for the bzip2 library, BZIP2-1.DLL.  Like ZLib Base, this exposes
+	the whole of the bzip2 API except the functions for handling disk files directly.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU BZip2 Streams">BZip2 Streams</A></B></DT>
+	<DD>
+	<P>
+	Three Stream classes built on top of bzip2 compression.  These follow exactly the
+	same pattern as the ZLib Streams, with compressing and decompressing
+	<code class="Smalltalk">WriteStreams</code>, and a decompressing
+	<code class="Smalltalk">ReadStream</code>.
+	</P>
+	</DD>
+
+	<DT><B><A name="CU ZipFiles">ZipFiles</A></B></DT>
+	<DD>
+	<P>
+	This package uses the ZLib streams to read or write ZIP files.  It is particularly aimed
+	at manipulating such files in memory, i.e. without having to extract files to disk to
+	read them.  Similarly you can add data directly to a Zip file without writing it to a
+	temporary file first.
+	</P>
+	<P>
+	It cannot handle all possible types of Zip file; it doesn't handle encryption, nor Zip
+	archives spanning several &ldquo;media&rdquo; (I hate that use of the word).   Also, it 
+	only understands &ldquo;Deflate&rdquo; compression, which is what zlib provides.
+	It does also understand &ldquo;Stored&rdquo;, i.e. uncompressed, entries as well,
+	but that's easy&hellip;  There are several other compression formats that are part of
+	the Zip file specification and which can be used by the real PKWare utilities, but those
+	formats seem to be rare in practise &mdash; I have never seen them myself.
+	</P>
+	<P>
+	It can create new Zip files (as real files on disk, or as binary data in memory) and
+	read existing files.  It can also <em>append</em> new data to an existing file, but it
+	does not have the ability to make arbitrary changes in-place (though it is easy enough
+	to create a copy, applying any desired modifications as you go).
+	</P>
+	</DD>
+
+	<DT><B><A name="CU ZipFile Tree Model">ZipFile Tree Model</A></B></DT>
+	<DD>
+	<P>Simple adaptor for using a ZipFile as the Model for a <code class="Smalltalk">TreeView</code>
+	or <code class="Smalltalk">ListTreeView</code>.<P>
+	</DD>
+
+	<DT><B><A name="CU TarFiles">TarFiles</A></B></DT>
+	<DD>
+	<P>
+	This package allows you to read or write UNIX tar files.  The usage is very similar
+	(though not quite identical, unfortunately) to that of the ZIP files.  When used
+	in conjuction with the Zlib streams, or BZip2 streams, this package can also be used
+	to read and write compressed tar files (sometimes known as tarballs).
+	</P>
+	</DD>
+
+	<DT><B><A name="CU TarFile Tree Model">ZipFile Tree Model</A></B></DT>
+	<DD>
+	<P>Simple adaptor for using a TarFile as the Model for a <code class="Smalltalk">TreeView</code>
+	or <code class="Smalltalk">ListTreeView</code>.<P>
+	</DD>
+
+</DL>
+<HR>
+<H3>Packages</H3>
+
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Package sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>CU ZLib Base</TD>
+		<TD align="right">76877</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU ZLib Base Tests</TD>
+		<TD align="right">5829</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD>CU ZLib Streams</TD>
+		<TD align="right">108533</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD>CU ZLib Streams Extras</TD>
+		<TD align="right">3698</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU ZLib Streams Tests</TD>
+		<TD align="right">35941</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD>CU BZip2 Base</TD>
+		<TD align="right">23432</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD>CU BZip2 Base Tests</TD>
+		<TD align="right">6928</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU BZip2 Streams</TD>
+		<TD align="right">91202</TD>
+		<TD>2.01</TD>
+	</TR>
+	<TR>
+		<TD>CU BZip2 Streams Tests</TD>
+		<TD align="right">30125</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD>CU ZipFiles</TD>
+		<TD align="right">149792</TD>
+		<TD>3.00</TD>
+	</TR>
+	<TR>
+		<TD>CU ZipFile Tree Model</TD>
+		<TD align="right">11904</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU ZipFiles Tests</TD>
+		<TD align="right">14567</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD>CU TarFiles</TD>
+		<TD align="right">63242</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU TarFile Tree Model</TD>
+		<TD align="right">13298</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU TarFiles Tests</TD>
+		<TD align="right">14815</TD>
+		<TD>1.00</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<P></P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Prerequisite packages' sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Abstract Collections">CU Abstract Collections</A></TD>
+		<TD align="right">51193</TD>
+		<TD>4.02</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Always">CU Always</A></TD>
+		<TD align="right">5976</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Null Streams">CU Null Streams</A></TD>
+		<TD align="right">7557</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Sortblocks">CU Sortblocks</A></TD>
+		<TD align="right">16398</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Stream Extensions">CU Stream Extensions</A></TD>
+		<TD align="right">13498</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU String Extensions">CU String Extensions</A></TD>
+		<TD align="right">6885</TD>
+		<TD>1.00</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	--></TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+</BODY>

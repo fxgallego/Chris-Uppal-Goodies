@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Additional Pre-defined Wrapper Classes</H1>
+<P>
+JNIPort comes with a package of extra pre-defined <A href="wrapper-classes.html">wrapper classes</A>.
+These are provided:
+</P>
+<UL>
+<LI>As examples.</LI>
+<LI>In case they come in useful.</LI>
+<LI>Because I'd generated them anyway, so I might as well throw them in&hellip;</LI>
+</UL>
+<P>
+The additional wrappers are not needed by JNIPort proper, although they are used by
+some of the <A href="examples.html">examples</A>.
+</P>
+<P>
+Nearly all of them wrap common Java classes, the Java 2 Collections, the Java IO classes, and
+the Java iterators, and give them something of the protocol of the Smalltalk equivalents.
+</P>
+<P>
+There are a few other wrapper classes in the package, but none of them add much, if anything, to
+what the <A href="wrapper-wizard.html">Wrapper Wizard</A> generated.
+</P>
+<P>
+Just as a warning: these wrapper classes are not, in general, as lavishly commented as is
+my habit.  You are expected to know the Smalltalk interface to the various Collection classes,
+for example, and if you are looking at the implementation of the adaptors then you are also
+expected to know about the equivalent Java classes.  For similar reasons, this section is very short.
+</P>
+<H2>IO-Stream Wrappers</H3>
+<P>
+There are two classes, <CODE class="Smalltalk">JavaReadStream</CODE> and
+<CODE class="Smalltalk">JavaWriteStream</CODE>, which act as root classes for instance-side
+wrappers for the root classes of the Java IO hierarchy.  They attempt to emulate the protocols
+of the corresponding Smalltalk <CODE class="Smalltalk">ReadStream</CODE> and
+<CODE class="Smalltalk">WriteStream</CODE> classes.  The emulation is patchy, especially for
+read-streams (because Java's streams are not arbitrarily positionable).
+</P>
+<P>
+These classes illustrate an important point &mdash; it is not necessary to follow the Java
+class hierarchy slavishly when designing the hierarchy of wrapper classes.  In this case, for
+instance, <CODE class="Smalltalk">JavaReadStream</CODE> captures commonality between the
+Java classes, <CODE class="Java">java.io.OutputStream</CODE> and
+<CODE class="Java">java.io.Writer</CODE> even though those two classes are not formally related
+in Java.
+</P>
+<H2>Collection Wrappers</H3>
+<P>
+Java's new (well, it is fairly old now) Collections API is defined by a handful of
+interfaces: <CODE class="Java">java.util.Set</CODE>, <CODE class="Java">java.util.List</CODE>,
+<CODE class="Java">java.util.Map</CODE>, and so on.  Java does provide concrete implementations
+of these interfaces, but there are lots of them, they are not all related in the hierarchy
+in any useful way (there's no reason why they should be), and you are quite likely to come
+across other objects that implement these interfaces, but which are not part of standard Java.
+</P>
+<P>
+For that reason, the Java Collections are a good example of the need for
+<A href="java-base.html#Interface Instances">interface instances</A>, JNIPort's built-in
+facility for associating an adaptor with a Java interface.  (In point of fact, they were
+the motivation for it.)
+</P>
+<P>
+Given a Java object that implements the <CODE class="Java">java.util.Set</CODE> interface,
+you can send <CODE class="Smalltalk">#asASet</CODE> to it (which is just an abbreviation for
+<CODE class="Smalltalk">#asA: #'java.util.Set'</CODE>).  That will answer an instance of
+<CODE class="Smalltalk">JavaUtilSet</CODE>, which understands the basics of the Smalltalk
+<CODE class="Smalltalk">Set</CODE> protocols, as well as exposing the methods from the
+<CODE class="Java">java.util.Set</CODE> interface in the
+<A href="method-names.html">normal way</A>. You can further send that object
+<CODE class="Smalltalk">#asCollection</CODE>, which will answer a deeper Adaptor
+that is subclassed from <CODE class="Smalltalk">Set</CODE> and therefore understands
+all of <CODE class="Smalltalk">Set's</CODE> interface (including whatever methods you
+may have added yourself).  Similar observations apply to the other collections interfaces.
+</P>
+<H2>Iterator Wrappers</H2>
+<P>
+Java has two external iterator classes; the old <CODE class="Java">java.util.Enumeration</CODE>
+and the newer <CODE class="Java">java.util.Iterator</CODE>.  Like the new collections, these
+are best handled by JNIPort's interface instances. In this case the wrapper classes implement
+the basics of Smalltalk's <CODE class="Smalltalk">ReadStream</CODE>.  A deeper Adaptor,
+which is subclassed from <CODE class="Smalltalk">ReadStream</CODE>, can be obtained by sending
+<CODE class="Smalltalk">#asReadStream</CODE>.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

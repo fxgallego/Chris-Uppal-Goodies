@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>Goodies for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>Goodies for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><strong>Goodies</strong></P>
+		<P><A href="JNIPort.html">JNIPort</A></P>
+		<P><A href="ZKit.html">Z-Kit</A></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><A href="SpaceBreakdown.html">Space Breakdown</A></P>
+		<P><A href="FMB.html">F.M.B.</A></P>
+		<P><A href="Ghoul.html">Ghoul</A></P>
+		<P><A href="Miscellanea.html">Miscellanea</A></P>
+		<P><A href="Experiments.html">Experiments</A></P>
+		<P><A href="Changes.html">Changes</A></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<P>
+Here is some of the free software I've written for Dolphin Smalltalk. I'm very slowly
+working my way through the list of the things I want to clean up and publish; this is
+what I've covered so far.
+</P>
+<P>
+You may use this software only if you accept
+<A href="TermsOfUse.html">these</A> conditions.
+</P>
+
+<P>
+Everything here is built with Dolphin version 5.1.4 &mdash; which is the latest version
+as I write (2004-05-03).  It has all been developed on my working mixture of Windows 2K
+and XP, both with Internet Explorer 6, and that is the only environment where I've done
+any testing. I dislike the &ldquo;new&rdquo; look of XP intensely so I never use it, and
+don't test against it either.  Of course, I hope these goodies will work with other
+combinations of system software &mdash; please let me know if you find any incompatibilities
+(or other problems, come to that).
+<P><strong>
+Stop press (2005-12-09): Dolphin 6 has recently been released.  That breaks some of this
+code (Ghoul and JNIPort are known not to work).  I will be updating everything for D6 in
+due course &mdash; before Christmas, with luck.
+</strong></P>
+</P>
+<P>
+The most up-to-date version can be found (Gods of the Internet willing, and provided
+that I've been paying my ISP bills) at my Dolphin Goodies
+<A href="http://www.metagnostic.org/DolphinSmalltalk">page</A>.
+</P>
+<P>
+A note about how I name versions. Each package has a version string of the form
+<code>major.minor</code>; I increment the &ldquo;major&rdquo; number each time I
+release a change (however small) that affects how the software works.  I increment
+the &rdquo;minor&rdquo; version number whenever I commit <EM>any</EM> change to the
+software (e.g. fixing a spelling error in a comment).  So, when I rebuild this site,
+the minor version numbers of packages may change if I've made any such changes that
+are too trivial to warrant making a new release and changelog entry.
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Overview</TH>
+		<TH>Details</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>JNIPort provides ways to call Java code from Smalltalk.</TD>
+		<TD><A href="JNIPort.html">JNIPort</A></TD>
+	</TR>
+	<TR>
+		<TD>Z-Kit provides facilities for ZIP and TAR file handling, and for streamed [de]compression using the zlib and bzip2 libraries.</TD>
+		<TD><A href="ZKit.html">Z-Kit</A></TD>
+	</TR>
+	<TR>
+		<TD>ListTree adds a new kind of View that is a hybrid of ListView and TreeView; it allows you to use ListViewColumns in a TreeView-like presentation.</TD>
+		<TD><A href="ListTree.html">ListTree</A></TD>
+	</TR>
+	<TR>
+		<TD>Space Breakdown is a simple tool for answering the question: 'what is taking up the space in my image ?'.</TD>
+		<TD><A href="SpaceBreakdown.html">Space Breakdown</A></TD>
+	</TR>
+	<TR>
+		<TD>Filtering Method Browser (FMB) is a modified method browser that allows you to construct complex criteria for which methods are displayed.</TD>
+		<TD><A href="FMB.html">F.M.B.</A></TD>
+	</TR>
+	<TR>
+		<TD>Ghoul is a simple tool providing a debugger-like view of the contents of Dolphin crash-dump files.</TD>
+		<TD><A href="Ghoul.html">Ghoul</A></TD>
+	</TR>
+	<TR>
+		<TD>Miscellanea contains a few small and unrelated packages that I often use to enhance the Dolphin base.  Many of the other packages depend on something from this collection.</TD>
+		<TD><A href="Miscellanea.html">Miscellanea</A></TD>
+	</TR>
+	<TR>
+		<TD>Experiments and unfinished stuff -- totally unsuported, liable to change without notice, and usually undocumented too.</TD>
+		<TD><A href="Experiments.html">Experiments</A></TD>
+	</TR>
+	<TR>
+		<TD>Prerequisites collects the packages that are needed by my published goodies, but which haven't yet been published themselves.</TD>
+		<TD><A href="Prerequisites.html">Prerequisites</A></TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<HR>
+<!--	real-text-ends-here	--></TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+</BODY>

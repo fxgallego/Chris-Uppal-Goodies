@@ -1,0 +1,117 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The JNIPort Status Monitor</H1>
+<P>
+The <DFN>Status Monitor</DFN> is the GUI of JNIPort.  It provides a way to
+start and stop the Java runtime, and to keep an eye on what JNIPort is doing.
+</P>
+<P>
+The Status Monitor installs itself in Dolphin's 'Extra Tools' system &ldquo;system folder&rdquo;,
+and into the 'Tools&rArr;Additional Tools&rArr;' menu.
+</P>
+<P>
+The 'JVM' menu allows you to start a new runtime, and to edit the predefined settings (see
+<A href="setup.html">Configuration</A>).  It also allows you to select which runtime to
+monitor, though this feature is of little use since Sun haven't implemented the ability to
+<EM>start</EM> more than one runtime&hellip;
+</P>
+<P>
+For a couple of simple examples of creating predefined settings, see the
+<A href="walkthrough.html">walkthrough</A> of installing and configuring JNIPort.
+</P>
+<P>
+It may be worth adding that the Status Monitor doesn't &ldquo;own&rdquo; the Java runtimes it
+is displaying, not even if they were started from the Monitor.  You can close the Monitor
+without affecting the JVM; you can start new Monitors (although the tool has the normal
+Dolphin <CODE class="Smalltalk">#resuseIfOpen</CODE> property, which is on by default), and
+they will connect to the existing runtime if there is one.
+</P>
+<P>
+The Status Monitor itself doesn't do very much; it is mostly just a container for a tabbed collection
+of plug-in pages.  You can add or remove pages from the 'View&rArr;Visible pages&rArr;' menu:
+</P>
+<P>
+<IMG src="status-monitor.gif" alt="Status Monitor showing page selection menu">
+</P>
+<P>
+The pages that are supplied with JNIPort are:
+</P>
+<UL>
+<LI><A href="status-monitor-status.html">The Status Page</A></LI>
+<LI><A href="status-monitor-classes.html">The Classes Page</A></LI>
+<LI><A href="status-monitor-classloaders.html">The Classloaders Page</A></LI>
+<LI><A href="status-monitor-history.html">The History Page</A></LI>
+<LI><A href="status-monitor-console.html">The Console Page</A></LI>
+<LI><A href="status-monitor-debug.html">The JVM Debug Page</A></LI>
+</UL>
+<P>
+See the section for each page for more details.
+</P>
+<P>
+The 'View' menu includes an 'Update interval&rArr;' sub-menu.  Several of the pages update
+at regular intervals; this option sets the interval.  When a JVM instance is first created
+the Status Monitor uses that JVM's settings (specifically the
+<CODE class="Smalltalk">#defaultUpdateInterval</CODE> property under
+<CODE class="Smalltalk">#statusMonitorSettings</CODE>) to determine how often to update.
+That setting itself defaults to 0, meaning no automatic updates.
+</P>
+<P>
+</P>
+<P>
+You can &ldquo;tear-off&rdquo; individual pages into their own independent windows, if you wish,
+by using the 'View&rArr;Tear off page&rArr;' menu.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

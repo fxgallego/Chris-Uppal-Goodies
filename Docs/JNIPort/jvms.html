@@ -1,0 +1,135 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>JNIPort and JVMs</H1>
+<P>
+This section is about which JVMs JNIPort has been tested against.
+I have tried <EM>no</EM> other JVMs at all.</P>
+<P>
+Each JVM implementation comes with its own way of locating the runtime (since Sun didn't even
+bother to set up a decent convention, let alone a proper specification, for how to do this).
+The corresponding subclasses of JNILibrary differ only in that they understand the different
+vendors' conventions.  If you explicitly specify the location of the JVM DLL in the
+configuration, then the conventions are ignored and there is no effective difference
+between the versions of JNILibrary.
+</P>
+<P>
+If you try another JVM implementation then please do let me know how you get on.  Note that
+JNIPort requires an implementation of JNI that is compatible with (at least) the 1.2.x release
+from Sun.
+</P>
+<H2>Sun JVMs</H2>
+<P>
+I've used the Sun JVMs almost exclusively as I've been writing JNIPort.  It really requires a
+1.4.x version of the JVM to work fully.  The 1.3.x series also worked when I last used them,
+but there were a few bugs.  I can't remember exactly what; I think there were some problems with
+accessing static fields inherited from interfaces.  Also the -verbose:jni option caused the
+JVM to issue <EM>thousands</EM> of warnings about exceeding the capacity of the local pool
+(the warnings were wrong, but irritating nonetheless).  A very early version of JNIPort was
+based on 1.2.x, but there were endless problems and instabilities &mdash; the problems
+were mostly with Sun's code (their floating-point handling), but it <EM>might</EM> be
+that current JNIPort, and a recent Dolphin VM, could be made to work with it.
+</P>
+<P>
+The Sun JVM's have always had a problem with floating point exceptions.  The picture has
+improved over time, partly because Sun have worked on the problems, but also because, since
+version 5, Dolphin now suppresses floating point underflow errors by default (it was always
+intended to, but the default was set wrongly).  The Sun JVM seems to require that both
+underflow and overflow exceptions are turned off or else it fails <EM>intermittently</EM>
+on floating point operations that generate the error.  To turn off overflow trapping, execute
+this Dolphin code:
+</P>
+<PRE><CODE class="Smalltalk">	active := Processor activeProcess.
+	fpeMask := active fpeMask: (active fpeMask | _EM_OVERFLOW).
+	...some code which might overflow...
+	active fpeMask: fpeMask.
+</CODE></PRE>
+<P>
+The constant, <CODE class="Smalltalk">_EM_OVERFLOW</CODE>, is defined in the pool constants
+dictionary <CODE class="Smalltalk">CRTConstants</CODE>.
+</P>
+<H2>IBM JVMs</H2>
+<P>
+I've tested briefly against the IBM JVM for Windows.  It seems to work OK.  There are
+a couple of bugs in the JVM that show up in the regression tests, but these are because of
+a really obscure part of the JVM semantics that IBM have got wrong.  It shouldn't
+affect anything in practice.  The most recent IBM version that I've tried is 1.3.x, so there
+may be a later version with the bug fixed.  Since the IBM implementation for Windows seems
+to be based on Sun's code, it shares the same irritating tendency to witter on about the
+local pool.
+</P>
+<P>
+I haven't tested extensively, but it appears that the IBM JVM does not share Sun's problems
+with floating point exceptions.
+</P>
+<H2>BEA JVMs (JRockit)</H2>
+<P>
+I've tested briefly against version 7 of the JRockit JVM from BEA Weblogic.  It <EM>almost</EM>
+works, but there is a nasty bug in their implementation of
+<CODE class="Java">java.lang.Class.declaredMethods()</CODE> (and similar) when called directly
+from JNI.  JNIPort includes a patch in package 'CU JRockit Patch' &mdash; see the package comment
+for how to install it (loading the package does not automatically install the patch). BEA
+released version 8 of JRockit recently, but I haven't had time to try it, so I don't know
+whether they've fixed the bug, they hadn't in the beta of version 8.
+</P>
+<P>
+With the patch, the picture is very much the same as with IBM.  There are a couple of obscure
+bugs and incompatibilities with Sun's JVM, but nothing very major.
+</P>
+<P>
+The BEA JVM appears to suffer from the same floating point failures as Sun's.  Only worse &mdash;
+the failure crashes Dolphin rather than simply aborting the Java runtime.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

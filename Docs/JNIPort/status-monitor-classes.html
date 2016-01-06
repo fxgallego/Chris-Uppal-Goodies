@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The Status Monitor's Classes Page</H1>
+<P>
+The <DFN>Classes Page</DFN> is a plug-in page for the <A href="status-monitor.html">Status
+Monitor</A>. It displays all the classes and types that JNIPort currently
+knows about.  It is essentially a tree view of the contents of the
+<A href="players.html#Class Registry">class registry</A>.
+</P>
+<P>
+<IMG src="status-monitor-classes.gif" alt="Status Monitor showing Classes page">
+</P>
+<P>
+The tree view should be pretty self-explanatory.  When a class is selected the
+right hand panel will display any wrapper methods that JNIPort has generated automatically 
+for that class.  It also displays the inheritance structure of the Java class itself, the
+Smalltalk class that is used to wrap references to instances of that class, and the
+Smalltalk class of its class static.
+</P>
+<P>
+This page adds a 'Class' menu to the main menu (it is identical to the context menu in the
+tree view).  Some of the options are discussed below.
+</P>
+<P>
+'Class&rArr;Find Java class...' and 'Class&rArr;Find/Load Java class...' both allow you to search
+for a named class in the class tree.  The difference is that one of them is restricted to searching
+through the already-loaded classes (but it is case-insensitive and allows wildcards, like the class
+search in Dolphin's CHB); the other will load a Java class if it is not already loaded, but that
+means that the name has to be specified completely and accurately.
+</P>
+<P>
+'Class&rArr;Browse JavaDoc...' will attempt to find and open a web browser on the JavaDoc
+documentation for the selected class. That uses a search path to find the JavaDoc files.  The path
+has a global components, which can be set with the 'Tools&rArr;Options&rArr;Global JavaDoc path...'
+menu option; it should be set to a ;-separated list of folder names, where the folders are
+the roots of JavaDoc file hierarchies (for instance, if you have installed the JDK's Java
+documentation in <CODE>C:\j2sdk1.4.1\docs</CODE>, say, then the root folder will be
+<CODE>C:\j2sdk1.4.1\docs\api</CODE>.  There is also a JVM-specific portion of the path which
+is one of the JVM configuration settings
+(under <CODE class="Smalltalk">#statusMonitorSettings</CODE>).  By default, both of the paths
+are empty.
+</P>
+<P>
+'Class&rArr;Generate instance-side wrappers...' and 'Class&rArr;Generate class-side
+wrappers...' launch the <A href="wrapper-wizard.html">Wrapper Wizard</A> to help generate
+wrapper methods for the selected Java class.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

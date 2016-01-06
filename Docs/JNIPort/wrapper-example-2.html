@@ -1,0 +1,151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Ghost-class Examples</H1>
+<P>
+This section is an example of using <A href="ghost-classes.html">ghost classes</A> to create
+and display a Swing window.
+</P>
+<!-- UPDATEME -->
+<P>
+JNIPort should be configured to use ghost classes and support callbacks.
+To configure ghost classes, ensure that the list of 'watcherClasses' under
+'jniPortSettings' includes <CODE class="Smalltalk">JVMGhostClassMaker</CODE>,
+there is no need to change the 'ghostClassSettings' from their defaults.
+</P>
+<P>
+Since AWT/Swing uses Java threads, you should
+make sure that the <A href="jni-helper.html">JNI Helper</A> is installed, or
+that you are not hooking the Java runtime's debugging output. If you followed
+the instructions in the <A href="walkthrough.html">installation walkthrough</A>
+then JNI Helper will be configured.
+</P>
+<P>
+Ensure that a properly configured JMV is running, and open a new workspace.  We start,
+as always, by getting a reference to the JVM object:
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+</CODE></PRE>
+<P>
+First we make an instance of <CODE class="Java">javax.swing.JFrame</CODE>.  The first time
+you do this in any one session will cause a pause of up to a minute (depending on the speed
+of your machine) as JNIPort imports nearly 300 Java classes and creates corresponding ghost
+classes.  A later version of JNIPort will use a lazier import scheme to mitigate this startup
+delay (<strong>Stop press:</strong> <em>actually that is available now, if you use a 
+<CODE class="Smalltalk">JVMLazyGhostClassMaker</CODE> instead of the
+<CODE class="Smalltalk">JVMGhostClassMaker</CODE> mentioned above &mdash; the feature is
+still experimental, though, so we don't use it in this example</em>).
+</P>
+<PRE><CODE class="Smalltalk">	frame := (jvm findClass: #'javax.swing.JFrame')
+			new_String: 'JNIPort!'.
+</CODE></PRE>
+<P>
+Now, we make <EM>sure</EM> that the frame won't call
+<CODE class="Java">java.lang.System.exit()</CODE> when it is closed.  If it did then it would
+close our Dolphin session too!  Notice how we are using the frame's class static to
+find the Java class constant <CODE class="Java">DISPOSE_ON_CLOSE</CODE>.
+</P>
+<PRE><CODE class="Smalltalk">	closeOp := frame static get_DISPOSE_ON_CLOSE.
+	frame setDefaultCloseOperation_int: closeOp.
+</CODE></PRE>
+<P>
+Now we ask the frame to display itself (calling <CODE class="Java">pack()</CODE> then
+<CODE class="Java">setVisible(true)</CODE> is a standard AWT/Swing idiom):
+</P>
+<PRE><CODE class="Smalltalk">	frame pack_null; setVisible_boolean: true.
+</CODE></PRE>
+<P>
+We can hide the frame:
+</P>
+<PRE><CODE class="Smalltalk">	frame setVisible_boolean: false.
+</CODE></PRE>
+<P>
+And show it again:
+</P>
+<PRE><CODE class="Smalltalk">	frame setVisible_boolean: true.
+</CODE></PRE>
+<P>
+Now we'll create a scrollable panel that will display a picture (chose some handy
+JPEG file).  Notice how the delay is much shorter this time; much of Swing was
+already loaded as a result of finding <CODE class="Java">javax.swing.JFrame</CODE>.
+</P>
+<PRE><CODE class="Smalltalk">	picture := FileOpenDialog showModal.
+	icon := (jvm findClass: #'javax.swing.ImageIcon')
+			new_String: picture.
+	label := (jvm findClass: #'javax.swing.JLabel')
+			new_Icon: icon.
+	pane := (jvm findClass: #'javax.swing.JScrollPane')
+			new_Component: label.
+
+</CODE></PRE>
+<P>
+Add the new pane to the frame and ask the frame to lay itself out again, which should display
+the picture:
+</P>
+<PRE><CODE class="Smalltalk">	frame getContentPane_null add_Component: pane.
+	frame pack_null.
+</CODE></PRE>
+<P>
+And remove the pane:
+</P>
+<PRE><CODE class="Smalltalk">	frame getContentPane_null remove_Component: pane.
+	frame pack_null.
+</CODE></PRE>
+<P>
+Close the frame:
+</P>
+<PRE><CODE class="Smalltalk">	frame dispose_null.
+</CODE></PRE>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

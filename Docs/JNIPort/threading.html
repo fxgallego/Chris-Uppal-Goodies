@@ -1,0 +1,800 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The Problems with Threads</H1>
+<P>
+This section is about the problems caused by the mismatch between the ways that the Java runtime
+and Dolphin use and understand operating system threads.
+</P>
+<P>
+The discussion may be quite off-putting, since it describes various ways of getting into trouble
+without expecting to.  Of course, you can do that with any threaded code, but the Java/Dolphin
+mix is particularly hard to get right.  There's nothing much more I can do to help with that; I've
+tried to make this section as comprehensible as I can, but it's still not an easy read.  I offer
+the following guideline:
+</P>
+<DL>
+<DT>A Guideline:</DT>
+<DD><P>
+Mixing Java threads with Smalltalk <CODE class="Smalltalk">Processes</CODE> is risky or difficult.
+Try to ensure that at any time <STRONG>either</STRONG> Java is quiescent, waiting to be invoked
+from any Smalltalk <CODE class="Smalltalk">Processes</CODE>, but not itself running any active
+threads <STRONG>or</STRONG> Smalltalk is quiescent, waiting to be invoked by
+callbacks from any Java threads, but not doing any other work in background
+<CODE class="Smalltalk">Processes</CODE>.
+</P></DD>
+</DL>
+
+<HR>
+<H2>Overview</H2>
+<P>
+The Java runtime from Sun implements Java threads as Windows threads.  Other JVMs for Windows
+either do the same, or multiplex several Java threads onto each OS thread (I believe that
+both the IBM and BEA runtimes do this, or can be configured to do so).  In either case the
+Java runtime is thread-intensive and is thread-aware.
+</P>
+<P>
+Dolphin, on the other hand, executes all Smalltalk code in just one OS thread.  All the
+Smalltalk <CODE class="Smalltalk">Processes</CODE> are executed by that thread.  Dolphin does
+make some use of other OS threads, and is also thread-aware.
+</P>
+<P>
+With a good deal of messing around, some determined turning of blind eyes to theoretical problems,
+and quite a bit of care, it is possible to reconcile these two systems.
+</P>
+<P>
+Almost all of the problems revolve around callbacks from the Java runtime into Dolphin.  (The other
+problems are described <A href="#Other Problems">below</A>.)  The Java runtime calls Dolphin code
+in two ways: when a Java &ldquo;native method&rdquo; is implemented by Dolphin code, and when
+the Java runtime's &ldquo;hook&rdquo; functions are implemented by Dolphin external callbacks.
+Later sub-sections go into more details, but the problem, and the general strategy for
+avoiding it, are the same in both cases.
+</P>
+<H3>The General Problem</H3>
+<P>
+The problem is that the callback into Dolphin can be made from an OS thread that is not the one
+that Dolphin uses for running Smalltalk code (call it the <DFN>Smalltalk thread</DFN>).
+In an ideal world Dolphin would be able to execute Smalltalk code on any OS thread, in which
+case these issues would vanish, but this is not an ideal world.  Fortunately, Dolphin does have
+a basic ability to handle such calls.  When the Dolphin VM finds that one of its
+<CODE class="Smalltalk">ExternalCallbacks</CODE> is being invoked from a thread that is not
+the Smalltalk thread, it blocks the caller, and passes the call to the Smalltalk thread for
+execution, then passes back the answer (if any) back to the blocked thread, which is then
+allowed to proceed.  The details of how it does that are not important (at least, I hope they
+aren't, because I don't know them).  One detail is worth noting, though: the external callback
+will be executed by the Dolphin &ldquo;main&rdquo; <CODE class="Smalltalk">Process</CODE>
+(the one that runs the Windows event dispatch loop).
+</P>
+<P>
+Unfortunately that can lead to deadlocks.  One way is because Dolphin cannot service
+callbacks while the Smalltalk thread is executing Java code:
+</P>
+<TABLE border=1 cellspacing=0 cellpadding=10>
+<THEAD>
+	<TR>
+		<TH>The Smalltalk Thread</TH>
+		<TH>Another Thread</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR><TD><P>
+	Executes Smalltalk code that, in turn, calls something in the Java runtime.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD><P>
+	Which starts a new thread, or alerts an existing thread, and
+	waits for it to complete some action.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	Attempts to invoke a Dolphin callback.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	Is blocked by Dolphin waiting for the callback to be handled by the Smalltalk
+	thread.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>&hellip;waiting&hellip;</P></TD></TR>
+</TBODY>
+</TABLE>
+<P>
+The threads are now deadlocked; each waiting for the other.
+</P>
+<P>
+Another way to create a deadlock is if the a background thread takes out a lock, and
+then invokes an <CODE class="Smalltalk">ExternalCallback</CODE> which indirectly
+results in the Smalltalk thread trying to acquire the same lock.  For instance:
+</P>
+<TABLE border=1 cellspacing=0 cellpadding=10>
+<THEAD>
+	<TR>
+		<TH>A Background Thread</TH>
+		<TH>The Smalltalk Thread</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR><TD><P>
+	Acquires a lock on some object, <DFN>lock</DFN>.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD><P>
+	Issues an external callback into Dolphin.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD><P>
+	Is blocked by Dolphin waiting for the callback to be handled by the Smalltalk
+	thread.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	Sees the external callback waiting, finds the handler for
+	that callback and executes it.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	The handler calls a Java method that is synchronised on the original lock object.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	It is blocked by the Java runtime, waiting for that lock to be released by
+	the background thread.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>&hellip;waiting&hellip;</P></TD></TR>
+</TBODY>
+</TABLE>
+<P>
+The threads are deadlocked.
+</P>
+<P>
+A related, but not identical, source of deadlocks is:
+</P>
+<TABLE border=1 cellspacing=0 cellpadding=10>
+<THEAD>
+	<TR>
+		<TH>A Background Thread</TH>
+		<TH>The Smalltalk Thread</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR><TD><P>
+	Acquires a lock on some object, <DFN>lock</DFN>.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD><P>
+	Issues an external callback into Dolphin.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD><P>
+	Is blocked by Dolphin waiting for the callback to be handled by the Smalltalk
+	thread.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	Before the callback is handled, Dolphin's internal scheduler wakes up
+	some other <CODE class="Smalltalk">Process</CODE>;
+	possibly it is a background process, but remember that they all run on the same
+	OS thread.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	That <CODE class="Smalltalk">Process</CODE> calls a Java method that is
+	synchronised on the original lock object.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	It is blocked by the Java runtime, waiting for that lock to be released by
+	the background thread.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>&hellip;waiting&hellip;</P></TD></TR>
+</TBODY>
+</TABLE>
+<H3>The General &ldquo;Solution&rdquo;</H3>
+<P>
+The technique that JNIPort uses for dealing with these case is to decouple the two threads
+wherever possible.  It requires a queue and an additional thread.  When the background thread
+wants to issue a callback, it does not call into Dolphin directly.  Instead it places the
+request onto a <DFN>queue</DFN>, and then immediately returns to its caller.
+The additional thread, the <DFN>demon thread</DFN>, has been sleeping waiting for the queue
+to become non-empty. When it wakes up, it sees the notification, removes it from the queue
+and then calls back into Dolphin.  The demon thread will be blocked at this point, waiting
+for Dolphin to finish handling the callback, but the original background thread has not
+had to wait, and so the deadlocks are avoided.  Naturally, this technique can only be used
+when the caller is not interested in the answer to the call.
+</P>
+<P>
+There is an additional complication.  If the code in the Java runtime that issues the call
+was running on the Smalltalk thread (because it had been invoked from Dolphin via JNI), then
+it should issue the callback directly, rather than putting it on the queue.  For pure
+notifications (where no answer is wanted) side-stepping the queue is just avoiding
+a needless inefficiency.  However if an answer is needed, then the caller <EM>cannot</EM>
+use the queue or else a different deadlock would occur, as follows:
+</P>
+<TABLE border=1 cellspacing=0 cellpadding=10>
+<THEAD>
+	<TR>
+		<TH>The Smalltalk Thread</TH>
+		<TH>The Queue Demon Thread</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR><TD><P>
+	Executes Smalltalk code that, in turn, calls some code in the Java runtime.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	The Java code issues an external callback into Dolphin.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	It places the request on the queue, and then sleeps waiting for an answer.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	Wakes up, dequeues the request, and issues an external callback into
+	Dolphin
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	The Dolphin VM sees the request and blocks the sender until the main
+	<CODE class="Smalltalk">Process</CODE> on the Smalltalk thread can
+	handle it.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>&hellip;waiting&hellip;</P></TD></TR>
+</TBODY>
+</TABLE>
+<P>
+&nbsp;
+</P>
+
+
+<HR>
+<H2>Hook functions</H2>
+<P>
+The Java runtime has three <DFN>hook functions</DFN>.  These are pointers to functions that
+will be invoked by the runtime to allow client code to monitor the state of the JVM.  In particular
+this is used for the runtime's debugging/logging output, such as the trace of loaded classes
+produced if the <CODE>-verbose:class</CODE> flag is provided.  Dolphin's external callbacks
+are capable (with a small extension provided by the 'CU Varargs' package) of acting as the
+necessary hooks.  The problem is that the hook functions can be (and are) invoked from any OS
+thread, so deadlocks are likely.
+</P>
+<P>
+A particularly common way that the hook functions can cause deadlocks is through the
+Java logging/tracing feature.  One example is Swing.  When Swing is starting up, as the
+first window is displayed, Swing starts a new Java thread to handle user-interactions.
+So, in the first call to display a window, something like
+<CODE class="Smalltalk">aFrame pack_null; show_null.</CODE>, the call to
+<CODE class="Smalltalk">#pack_null</CODE> calls Java code that starts the Swing thread and
+waits for it to confirm that it is running (somehow).  If the new thread produced any logging
+(as is likely if the <CODE>-verbose:class</CODE> or <CODE>-verbose:jni</CODE> flags are turned
+on), then Dolphin/Java will deadlock. This is a special case of the first form of deadlock,
+above.
+</P>
+
+<P>
+The <A href="jni-helper.html">JNI Helper</A> library is an external DLL that provides wrapper
+functions for external callbacks.  The wrapper functions use the queue/demon approach internally
+to ensure that threads other than the Smalltalk thread are never blocked waiting for Dolphin to
+handle the notification.
+</P>
+<P>
+With the JNI Helper, as far as I know, all the deadlocks arising from logging are avoided.
+</P>
+
+
+<HR>
+<H2>Native Methods, Notifications, and Requests</H2>
+<P>
+The other way that a Java runtime can invoke code in Dolphin is via Java's
+&ldquo;native methods&rdquo;.  A native method is a Java method that is declared but not
+defined in the Java code, instead an implementation is provided by external (to the JVM) code.
+The implementation can be provided by using JNI to set a pointer to a handler function (it
+can also be provided by a DLL but that is not relevant to JNIPort).
+</P>
+<P>
+As in the case of hooks, Dolphin's external callback feature can be used to create
+a &ldquo;function pointer&rdquo; that will actually cause Smalltalk code to be executed.
+But, again, there is a risk of deadlocks.  JNIPort includes
+a Java library that uses the queue/demon approach to avoid or reduce the risk.
+</P>
+<P>
+In this case JNIPort can't <EM>eliminate</EM> the risk, since sometimes the caller does
+need to wait for an answer.  For that reason Java callbacks are broken down into
+Notifications and Requests.  Both go via the queue, but only the latter wait for
+an answer.  See <A href="callbacks.html">Callbacks</A> for more information on how to use them.
+</P>
+<P>
+There is an additional reason for using the queue/demon approach for Java callbacks.  It is
+unrelated to deadlocks, but is caused by a quirk of the way that JNI works with threads.
+</P>
+<P>
+All normal JNI operations are invoked via a pointer to a <CODE class="C">JNIEnv</CODE>
+(which is a data structure rather like a COM object or a pointer to C++ object with a
+vtable, the JNI API is mostly expressed as the &ldquo;methods&rdquo; of these objects).
+Each OS-thread has its own JNIEnv, and it is not allowed to use that of any other thread.
+In particular, all references to Java objects are via opaque &ldquo;pointers&rdquo; that
+are only valid from one OS-thread; the references are &ldquo;local&rdquo; to the thread's
+JNIEnv. (There is a way of getting a &ldquo;global&rdquo; reference that is valid across
+threads, but that doesn't help with these problems.)
+</P>
+<P>
+In fact, whenever the Java runtime calls a native method, it creates new JNIEnv that will
+be valid only for the calling thread, and only until the callback returns.  (The main
+point of this seems to be a half-baked attempt to make managing references to Java
+objects from C code slightly automatic.)  That doesn't affect this discussion but does
+cause an additional problem that is described <A href="#Finalisation">below</A>.
+</P>
+<P>
+The problem is that it makes it impossible to pass references to Java objects from Java to
+Smalltalk!
+The reason is as follows.  Suppose that some Dolphin
+<CODE class="Smalltalk">ExternalCallback</CODE> had been registered with JNI as the
+implementation of a Java native method.  When the Java method is invoked, the
+Java runtime will create a new JNIEnv for the thread where the caller is running,
+and then pass it, a reference to the object who's method was called, and references
+to any parameter objects, to the external callback.  Dolphin will ensure that the
+external callback is actually executed on the Smalltalk thread.  But, unfortunately,
+that isn't necessarily the same thread as the original caller.  If it is not, then
+the provided JNIEnv is useless &mdash; it cannot be used from that thread.  Worse,
+there is no way to use the references to the 'this' object and its parameters, since
+those references are local to the calling thread/JNIEnv.  Which is limiting, to say the
+least&hellip;
+</P>
+<P>
+Fortunately a slight modification to the queue/demon approach provides a way around
+the problem.
+</P>
+<P>
+In JNIPort you are not encouraged to declare native methods and create your own
+<CODE class="Smalltalk">ExternalCallbacks</CODE> to implement them.  Instead you
+use a package of Java code that implements a queue of requests and notifications,
+and a queue demon to look after it.  There is only one native method used by
+JNIPort (it is actually
+<CODE class="Java">org.metagnostic.jniport.DolphinNotifierThread.dolphinNotifierMethod()</CODE>;
+which is static, returns <CODE class="Java">void</CODE> and takes no parameters),
+it is used to tell the Dolphin that the queue of outstanding requests is not empty.
+This one native method is implemented by an external callback in Dolphin.  That
+(simplifying somewhat), goes into a loop, removing requests and notifications from the queue,
+executing the appropriate handler code, and (for requests only) telling the request
+object what the answer was.  The loop continues until the queue is empty.
+Because Dolphin is calling &ldquo;down&rdquo; into
+Java, it gets valid object references in the normal way, so the problem with passing
+object references from Java to Smalltalk is circumvented.
+</P>
+<P>
+The Notifications and Requests are Java objects that hold a reference to the originator
+of the request, a parameter object (which, of course, may be an array), and a 
+&ldquo;tag&rdquo; object that is used to identify the Smalltalk handler code.  The mapping
+from tag object to handlers is held by the <DFN>callback registry</DFN> as
+described in <A href="callbacks.html">Callbacks</A>.
+</P>
+<P>
+The details of the interaction are quite complicated, and unfortunately have some
+unintuitive consequences for the order of events.  To start with the simplest case,
+here's what happens when Java code, that happens to be running on the Smalltalk
+thread, sends a notification to Smalltalk:
+</P>
+<TABLE border=1 cellspacing=0 cellpadding=10>
+<THEAD>
+	<TR>
+		<TH>The Smalltalk Thread</TH>
+		<TH>The Queue Demon Thread</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR><TD><P>
+	Executes Smalltalk code that uses JNIPort to invoke some method
+	in Java.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	The Java code creates a Notification object, filling in a reference to 'this'
+	and an optional parameter.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	It places the object on the queue and then calls the special notification
+	method directly (because it's on the Smalltalk thread).
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	The Java runtime invokes the external callback.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	The external callback passes control to the callback registry.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	The callback registry takes the first item off the queue.  It
+	looks up the registered handler for that notification's
+	tag.  It executes the handler, discarding the answer, if any.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	The callback registry tries to take the next item off the queue,
+	but there isn't one so it returns to its caller &mdash; the
+	external callback.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	Which returns to the Java runtime.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+
+	<TR><TD><P>
+	Which returns to the original Java code.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD></TR>
+</TBODY>
+</TABLE>
+
+<P>
+The case where an answer is required is very similar.  The differences are only that the
+Java code creates a Request object instead of a Notification; that the callback registry
+records the answer from the handler in the request object; and that the Java code (presumably)
+reads the answer and makes some use of it.
+</P>
+
+<P>
+The next case is slightly more complicated.  If a notification is issued from a thread other than
+the Smalltalk thread, then there are three threads that are actively involved, as follows:
+</P>
+<TABLE border=1 cellspacing=0 cellpadding=10>
+<THEAD>
+	<TR>
+		<TH>A Background Thread</TH>
+		<TH>The Queue Demon Thread</TH>
+		<TH>The Smalltalk Thread</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR><TD><P>
+	The Java code creates a Notification object.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD><P>
+	It places it on
+	the queue, and then carries on with whatever other activities
+	it wishes.  It takes no further interest in the notification.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&nbsp;</TD>
+	<TD><P>
+	Wakes up because the queue is no longer empty and calls the
+	special notification method.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&nbsp;</TD>
+	<TD><P>
+	The Java runtime invokes the external callback.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&nbsp;</TD>
+	<TD><P>
+	This thread is now blocked by Dolphin, waiting for the special notification
+	to be handled by the Smalltalk thread.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD><P>&nbsp;</P></TD>
+	<TD><P>&hellip;waiting&hellip;</P></TD>
+	<TD>
+	The Smalltalk thread sees that an external callback is waiting to
+	be executed, and executes it.
+	</TD></TR>
+
+	<TR><TD><P>&nbsp;</P></TD>
+	<TD><P>&hellip;waiting&hellip;</P></TD>
+	<TD>
+	The callback registry loops as above; it empties the
+	queue of notifications, handling each one, and returns when
+	the queue is empty.
+	</TD></TR>
+
+	<TR><TD>&nbsp;</TD>
+	<TD><P>
+	This thread is now unblocked by the Dolphin VM, and returns to its
+	caller, the demon.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&nbsp;</TD>
+	<TD><P>
+	The demon then it goes back to sleep waiting for something
+	to appear on the queue.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+</TBODY>
+</TABLE>
+<P>
+By the way, I'm glossing over the details of how various race conditions are avoided.
+They don't affect the overall design; see the code if you're interested.
+</P>
+<P>
+The next case is more complicated again.  If a request is issued from a thread other than
+the Smalltalk thread, then it must wait for a reply:
+</P>
+
+<TABLE border=1 cellspacing=0 cellpadding=10>
+<THEAD>
+	<TR>
+		<TH>A Background Thread</TH>
+		<TH>The Queue Demon Thread</TH>
+		<TH>The Smalltalk Thread</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR><TD><P>
+	The Java code creates a Request object and places it
+	on the queue.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD><P>
+	It then does a Java <CODE class="Java">wait()</CODE>, which will block
+	this thread until it is woken up by a response to the request.
+	</P></TD>
+	<TD>&hellip;sleeping&hellip;</TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	Wakes up because the queue is no longer empty and calls the
+	special notification method. Which, as before, blocks waiting
+	until the Smalltalk thread has finished handling it.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	The Smalltalk thread sees that an external callback is waiting to
+	be executed, and executes it.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	The first entry (the original request) is taken off the queue
+	and its handler is executed.
+	</P></TD></TR>
+
+	<TR><TD>&hellip;waiting&hellip;</TD>
+	<TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	The Request object records the answer from the handler.  This, as a
+	side effect, uses Java's <CODE class="Java">notifyAll()</CODE> to wake
+	any thread that is waiting for it.
+	</P></TD></TR>
+
+	<TR><TD><P>
+	Wakes up because an answer is now available.  Reads the answer
+	and carries on with whatever this thread should do next.
+	</P></TD>
+	<TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	Carries on with the loop, looking for further requests to process.
+	</P></TD></TR>
+
+
+	<TR><TD>&nbsp;</TD>
+	<TD>&hellip;waiting&hellip;</TD>
+	<TD><P>
+	Eventually it empties the queue out and returns, causing Dolphin to unblock
+	the demon thread.
+	</P></TD></TR>
+
+
+	<TR><TD>&nbsp;</TD>
+	<TD><P>
+	This thread is now unblocked and goes back to sleep until
+	something next appears on the queue.
+	</P></TD>
+	<TD>&nbsp;</TD></TR>
+
+</TBODY>
+</TABLE>
+
+<P>
+One thing to note is that, for Notifications and Requests sent from the Smalltalk thread, the caller
+does not return until <EM>all</EM> pending callbacks have been handled.  So, if there are
+a number of background threads submitting callbacks at the same time, the original Java code
+may be blocked until there happens to be a pause long enough for Dolphin to empty the queue.
+</P>
+<P>
+Another thing to note is that this scheme does <EM>not</EM> protect against all deadlocks.
+Notifications should be deadlock free, but if you are using Callbacks then you should ensure
+that you do not hold any locks on Java objects while you are waiting for the response.
+</P>
+<P>
+The last important point is that, as mentioned above, if the Smalltalk thread is not
+executing Smalltalk, then it is not available to handle callbacks.
+In particular code like the following can work unexpectedly:
+</P>
+<PRE><CODE class="Java">	void
+	someMethod()
+	{
+		Thread[] workers = new Thread[10];
+
+		// create some worker threads
+		for (int i = 0; i < workers.length; i++)
+			workers[i] = new Thread(...whatever...);
+
+		// start them running
+		for (int i = 0; i < workers.length; i++)
+			workers[i].start();
+
+		// wait for them all to finish
+		for (int i = 0; i < workers.length; i++)
+			workers[i].join();
+	}
+	</CODE></PRE>
+<P>
+If that method is called from Smalltalk, then it will block Smalltalk until it returns, so no
+callbacks can be handled until it does.  If any of the worker threads issue Notifications,
+then Dolphin will not see them until after all the threads have died.  If any of them makes
+a callback Requests then it will deadlock &mdash; the thread will be waiting for Dolphin to
+handle the callback, but the Smalltalk thread will still be blocked waiting for all the
+threads to complete.
+</P>
+
+
+<HR>
+<H2><A name="Finalisation">Finalisation</A></H2>
+<P>
+JNIPort releases references to Java objects by finalisation.  If you read the &ldquo;guideline&rdquo;
+at the beginning of this section, then you may be struck by the thought that the Dolphin finaliser
+Process will run even if the rest of Dolphin is passively handling callbacks from Java.  The
+impression is correct, and the way that references to Java objects are cleared by finalisation
+does break the guideline.
+</P>
+<P>
+The problem is really more serious than just not adhering to an informal guideline. JNI specifies
+that &ldquo;local&rdquo; JNI references must be released by the same JNIEnv as created them.
+What's more, it insists (a severe and pointless restriction, in my view) that they cannot be
+released at all if there's another JNIEnv active at the time for the running thread.  That means
+that finalisation cannot feasibly be used to clear local references unless JNIPort as a whole
+can be sure that only one JNIEnv is ever used.
+<P>
+That condition can be met only if no Java callbacks are ever used (the hook functions don't
+cause a problem here).  That is the reason that there are two slightly different subclasses
+of the Smalltalk class <CODE class="Smalltalk">JVM</CODE>.  One of these,
+<CODE class="Smalltalk">JVMWithoutCallbacks</CODE> (a nice imaginative name) does not support
+callbacks at all, and therefore can make use of local references.  The other,
+<CODE class="Smalltalk">JVMWithCallbacks</CODE>, does support callbacks, but is therefore forced
+to convert every local JNI reference to a global one as soon as it is created.
+</P>
+
+
+<HR>
+<H2><A name="Other problems">Other Problems</A></H2>
+<P>
+Lastly, there are two race conditions that &mdash; as far as I can see
+&mdash; cannot feasibly be removed.  In both cases there is a very small time period during
+which, if the luck were against you, JNIPort would use the wrong JNIEnv for some operation.
+</P>
+<P>
+It would probably be possible to remove the race conditions by adding yet more complexity,
+and putting Semaphore protection around <EM>every</EM> access to the JNIEnv.  That would
+cause a considerable increase in the already large overhead involved in using JNIPort.
+Since I have not been able to produce any scenario where the problems manifest in practice,
+I have not taken that step.  Possibly a future version of JNIPort will have a configurable
+policy of some sort rather than hard-wiring the decision.
+</P>
+<P>
+The first case applies during a callback.  As the callback is processed, i.e. when
+the Dolphin VM invokes the <CODE class="Smalltalk">ExternalCallback</CODE>, JNIPort
+switches to using the new JNIEnv that the Java runtime provides for use during the callback.
+The problem is that at the very start and end of this period, before the new JNIEnv is
+installed, and after it has been removed again, other Smalltalk
+<CODE class="Smalltalk">Processes</CODE> could be scheduled to run.  If that happens,
+<EM>and</EM> the other Process uses Java, then it will try to use the wrong JNIEnv.
+One potential sufferer from this scenario is the finaliser.
+</P>
+<P>
+The other case is about exception checking of JNI calls, it is applicable even
+if callbacks are not enabled.  JNI uses a per-JNIEnv (and, therefore, thread-local)
+flag to say 'an exception has been thrown from Java', and all JNI calls should check
+the flag (all subsequent JNI calls will fail until it is cleared). Since all Dolphin
+<CODE class="Smalltalk">Processes</CODE> run on the same OS thread, the possibility
+exists that one Process could see an exception that had really been thrown from code
+invoked via a JNI call from another Process.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

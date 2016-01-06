@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>The JNIHelper DLL</H1>
+<P>
+JNIHelper is a C DLL, plus the Smalltalk code to use it.  It exists <EM>only</EM> because of the
+mismatch between the Dolphin and JVM models of threads.
+</P>
+<P>
+The JVM has three callback &ldquo;hooks&rdquo;; these are callback functions that JNI clients can
+replace with their own functions.  The hook functions are called:
+</P>
+<UL>
+<LI>When the JVM is about to exit.</LI>
+<LI>When the JVM is about to abort (i.e. an abnormal exit).</LI>
+<LI>
+When the JVM has some debugging information to display (this would otherwise be
+written to the console, but is not the same as the Java standard output streams).
+</LI>
+</UL>
+<P>
+Dolphin's external interfacing is (with some extensions to handle <CODE class="C">varargs</CODE>
+functions) capable of using these hook functions.  Unfortunately, because the JVM uses OS-level
+threads (at least the Sun JVM does), which Dolphin can't handle directly, this is prone to
+deadlock. See <A href="threading.html">the problem with threads</A> for the details.
+</P>
+<P>
+The JNIHelper library provides a way around this.  It provides replacements for the JNI hooks
+that can be called from any thread.  The way it works is (slightly simplified) that when the
+replacement hook function is called, it stores the data provided with the call on an internal
+queue, and then returns immediately to the caller.  A separate thread waits for data to appear
+on the queue, and when it does, it calls back into Dolphin to allow JNIPort to consume the data.
+Since the caller never waits for Dolphin, this should avoid the risk of deadlock.
+</P>
+<P>
+An additional feature of JNI Helper is to allow the JVM's debugging stream to be redirected
+to the Window's system debug stream, where it can be viewed with a tool like DebugView
+from <A href="http://www.sysinternals.com/" target=_blank>http://www.sysinternals.com/</A>.
+This should completely eliminate any possibility of the debugging output causing deadlocks.
+</P>
+<P>
+It is possible to use JNIPort without the JNIHelper.  You can either just not use the hooks
+at all (set from the <A href="setup.html">configuration</A>) which will side-step the problem
+entirely, or you can accept a risk of deadlock.  Unless you are using more than one Java
+thread then you will probably get away with it.  (But note that some Java features use
+threads even if you haven't explicitly started any &mdash; AWT/Swing for one.)
+</P>
+<P>
+The DolphinJNIHelper DLL, and the C source and a VC++ project file, are in the Extras\
+folder which is part of the JNIPort download.  Put the DLL somewhere where Dolphin can find it.
+Please note: I recommend that you rebuild the DLL from source if you can, or,
+at minimum, run it through a reputable, and up to date, virus checker.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

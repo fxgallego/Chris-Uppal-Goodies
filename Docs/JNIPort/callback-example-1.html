@@ -1,0 +1,630 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>An Example of Using Callbacks</H1>
+<P>
+This section is an example of using <A href="callbacks.html">callbacks</A> from
+Java into Smalltalk.  The first half uses callbacks to create a Swing window
+showing the Smalltalk class hierarchy.  The second half adds an event listener
+to the tree that allows Smalltalk code to observe the tree's &ldquo;selection
+change&rdquo; events 
+</P>
+<HR>
+<P>
+JNIPort should be configured to use ghost classes and support callbacks.
+To configure ghost classes, ensure that the list of 'watcherClasses', under
+'jniPortSettings', includes <CODE class="Smalltalk">JVMGhostClassMaker</CODE>,
+there is no need to change the 'ghostClassSettings' from their defaults.
+To enable callbacks the 'jvmClass' setting, under 'jniPortSettings', should
+be set to <CODE class="Smalltalk">JVMWithCallbacks</CODE>.
+</P>
+<P>
+Since AWT/Swing uses Java threads, you should
+make sure that the <A href="jni-helper.html">JNI Helper</A> is installed, or
+that you are not hooking the Java runtime's debugging output. If you followed
+the instructions in the <A href="walkthrough.html">installation walkthrough</A>
+then JNI Helper will be configured.
+</P>
+<P>
+Once a suitably configured JVM is running, you can test whether callbacks are
+properly configured by displaying the Status Monitor's 
+<A href="status-monitor-console.html">console page</A>.  If it does not show
+a warning message, then callbacks are probably configured.  You can test that
+they are working by sending some text to the Java console:
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+	jvm stdout nextPutAll: 'Testing...'; cr.
+</CODE></PRE>
+<P>
+We are getting ahead of ourselves; before we can experiment with callbacks we'll
+have to write some Java code that uses them.
+</P>
+<HR>
+<H2>Using Callback Requests</H2>
+<H3>Java Code</H3>
+<P>
+In this example, we create a Java
+<CODE class="Java">javax.swing.tree.TreeModel</CODE> that appears (to Java) to
+hold a tree of Smalltalk classes.  In fact it will be a tree of the string
+names of Smalltalk classes (JNIPort does not provide any way for Java code to
+refer directly to Smalltalk objects &mdash; garbage collection would become a
+nightmare&hellip;).
+</P>
+<P>
+Java <CODE class="Java">TreeModel</CODE> is an interface, so we define a class
+that implements it.  The important methods are:
+</P>
+<UL>
+<LI><CODE class="Java">getChild()</CODE></LI>
+<LI><CODE class="Java">getChildCount()</CODE></LI>
+<LI><CODE class="Java">getIndexOfChild()</CODE></LI>
+</UL>
+<P>
+These will be used by Swing to populate the tree; we will implement them
+by sending callback requests to Dolphin.
+</P>
+<P>
+The source for the Java class is <A href="TreeModelExample.java"><CODE class="java">
+org.metagnostic.jniport.eg.TreeModelExample.java</CODE></A>.  The rest of this
+section will mention some of the highlights.
+</P>
+<P>
+Callbacks always have a &ldquo;tag&rdquo; object to identify the request.  This
+should be unique and should last for as long as callbacks are in use.  A handy
+way to set this up is to use Java strings for the tags, held as static variables
+in the class:
+</P>
+<PRE><CODE class="Java">    private static final Object
+        s_getChildTag = new String("TreeModelExample.getChildTag()"),
+        s_getChildCountTag = new String("TreeModelExample.getChildCount()"),
+        s_getIndexOfChildTag = new String("TreeModelExample.getIndexOfChild()");
+</CODE></PRE>
+<P>
+That creates three tag objects that will be used to identify the three callback
+requests.  It creates new strings for the tags, rather than just using string
+literals, in order to <EM>guarantee</EM> that the tags are unique.
+</P>
+<P>
+We also define some static &ldquo;getter&rdquo; methods for the tags, since
+our Smalltalk code will need to know what they are before it can link them
+to the proper callback handlers.  We could just as well have made the tags
+themselves public (since they are static and final, they are really just constants),
+or even configured JNIPort to read the private variables directly.
+Yet another option would be to make the &ldquo;getters&rdquo; be <EM>instance</EM>
+methods (but still returning the value of the static tags), it all depends on
+how you are using the callbacks.
+</P>
+<P>
+Now to define the methods that call back into Smalltalk.  Starting with:
+</P>
+<PRE><CODE class="Java">    public int
+    getChildCount(Object parent)
+    {
+        try
+        {
+            DolphinRequest req = new DolphinRequest(
+                                    s_getChildCountTag,
+                                    this,
+                                    parent);
+            Object value = req.value();
+            return ((Integer)value).intValue();
+        }
+        catch (Throwable e)
+        {
+            return 0;
+        }
+    }
+</CODE></PRE>
+<P>
+This is called by Swing to see how many children a given node has.
+The meat of the methods is inside the try/catch block. First it creates a
+<CODE class="Java">DolphinRequest</CODE> object, passing the tag that
+is used to identify 'getChildCount' requests.  It also passes itself,
+&ldquo;this&rdquo;, as the originator of the request (which will not be
+used in this example), and the parent object as the
+parameter to the request.  In fact the parent will be a Java string
+naming a Smalltalk class, but the interfaces are defined to take
+<CODE class="Java">java.lang.Objects</CODE>.
+</P>
+<P>
+It then calls the request's <CODE class="Java">value()</CODE> method.
+That will block the calling thread (actually the Swing user-interface
+thread) while the callback is handled by code in Dolphin (which we'll
+write later).  Callbacks can only return Java objects, so the callback
+returns the number of subclasses of our parent class as a 
+<CODE class="Java">java.lang.Integer</CODE>.  We unpack the primitive
+<CODE class="Java">int</CODE> equivalent and return it to our caller.
+</P>
+<P>
+The try/catch block is needed because
+<CODE class="Java">DolphinRequest.value()</CODE> is declared to
+throw any possible Java exception.  The Smalltalk code can generate
+any exception it likes, so we have to handle the possibility explicitly.
+For production code, handling all exceptions the same way would be a
+bad idea &mdash; we should at least log them &mdash; but it's OK for
+a simple example like this.
+</P>
+<P>
+The next of our callback methods is:
+</P>
+<PRE><CODE class="Java">    public Object
+    getChild(Object parent, int index)
+    {
+        try
+        {
+            DolphinRequest req = new DolphinRequest(
+                                    s_getChildTag,
+                                    this,
+                                    parent,
+                                    new Integer(index));
+            return req.value();
+        }
+        catch (Throwable e)
+        {
+            return null;
+        }
+    }
+</CODE></PRE>
+<P>
+This is called by Swing to get the Nth child of a given parent.  It is
+allowed to return <CODE class="Java">null</CODE> if the parent is not
+valid or it doesn't have that many children.  Remember that the index
+of the child is 0-based, as always in Java.
+</P>
+<P>
+This also creates a <CODE class="Java">DolphinRequest</CODE> object, this
+time with the tag for 'getChild' requests, it uses a different constructor
+that takes two arguments and packs them into the single parameter as an
+<CODE class="Java">Object[]</CODE> array with two elements.  The return
+value from the callback will be a Java string naming the Nth subclass of
+the parent (or null), so we can just return that directly from this method.
+</P>
+<P>
+The last of our callback methods is:
+</P>
+<PRE><CODE class="Java">    public int
+    getIndexOfChild(Object parent, Object child)
+    {
+        if (parent == null || child == null)
+            return -1;
+        try
+        {
+            DolphinRequest req = new DolphinRequest(
+                                    s_getIndexOfChildTag,
+                                    this,
+                                    parent,
+                                    child);
+            Object value = req.value();
+            return ((Integer)value).intValue();
+        }
+        catch (Throwable e)
+        {
+            return -1;
+        }
+    }
+</CODE></PRE>
+<P>
+This is called by Swing to find the index of a child within the list of its
+siblings.  The implementation does not differ interestingly from the other
+two callback methods.
+</P>
+<P>
+The rest of the Java class is just a boilerplate implementation of a
+<CODE class="Java">TreeModel</CODE>, and is not worth discussing.
+</P>
+<P>
+You should compile the class and ensure it is somewhere on the JNIPort
+classpath.  The .JAR file, 'JNIPort-Tests.jar', which is supplied with
+JNIPort in the 'Extras\' folder already includes a compiled version
+of the code, so if that JAR file is on the classpath then you should
+be OK already.
+</P>
+<H3>Smalltalk Code</H3>
+<P>
+It would be possible to use our new Java class entirely by typing into
+a Smalltalk workspace, but it wouldn't make for a very clear example.
+Instead we'll generate a proper wrapper class.
+</P>
+<P>
+In this case, the Java tree will be showing the state of the entire
+Smalltalk image, rather than the state of some specific Smalltalk
+object.  That's a slightly unnatural case, but it does keep the
+example simple.  We can define all the code we need to handle
+callbacks as methods attached to the class static for
+<CODE class="java">TreeModelExample</CODE>.
+Someday I may add a more realistic example&hellip;
+</P>
+<P>
+We start by using the <A href="wrapper-wizard.html">Wrapper Wizard</A>
+to generate a class-side wrapper class for our example.  First ensure
+that JNIPort has loaded our class, we can do that by choosing
+the 'Find/Load Java class' command from the class menu of the Status
+Monitor's <A href="status-monitor-classes.html">classes page</A>. Enter the
+full name of the class, 'org.metagnostic.jniport.eg.TreeModelExample' in the
+dialog box (this is case-sensitive).  If you have compiled
+the class, and it is somewhere where JNIPort and the Java runtime can find it,
+then the classes page will load the class (if it wasn't before) and select
+it in the class tree.
+</P>
+<P>
+Now to generate a static wrapper class.  If you select
+'Generate class-side wrappers...' from the 'Class' menu, then the Wrapper
+Wizard will start.  If you have the 'CU Java Examples' package installed
+then the Wizard will have selected the pre-defined wrapper class for 
+<CODE class="java">TreeModelExample</CODE>, and you may as well just
+kill the Wizard now because the wrapper is already defined.  If not, then
+the Wizard should have selected class
+<CODE class="Smalltalk">StaticJavaLangObject</CODE> as the best available
+approximation to an approprate static wrapper class.  The 'Next' button
+will be disabled, though, because the Wizard knows that
+<CODE class="Smalltalk">StaticJavaLangObject</CODE> is already used to
+wrap <CODE class="java">java.lang.Object</CODE>.  You'll need to make a
+new subclass for wrapping our Java example.  You can create it from the
+context menu in the class selection pane, call it what you like, but
+the pre-defined version is called
+<CODE class="Smalltalk">StaticOMJEgTreeNodeExample</CODE>.
+</P>
+<P>
+Once you have created the target class the Wizard should let you go on
+to populate it, just accept all the defaults.  It will create the new
+methods and add them to the target class.
+</P>
+<P>
+Now we hit an awkwardness.  We are using ghost classes, but ghost classes
+don't really support having new wrapper classes added to the system while
+it is already running (it wouldn't be a problem if we weren't using ghosts, we
+could just let the Wizard &ldquo;register&rdquo; the new class and all
+would be well).  It is possible to tell JNIPort to use the new class, but
+I haven't yet created a public API for doing so, let alone a GUI.  So, I'm afraid,
+the easiest thing to do is just close down JNIPort and restart.
+Of course, that means that &mdash; thanks to Sun &mdash; you'll also
+have to close and restart Dolphin before you can start the new JVM.  Sorry!
+</P>
+<P>
+After all this messing around, we have managed to create a static wrapper
+class for <CODE class="java">TreeModelExample</CODE>, so that class should
+be represented by a Smalltalk object that is an instance of (a ghost subclass of)
+<CODE class="Smalltalk">StaticOMJEgTreeNodeExample</CODE>.  You can verify
+that by looking at the class's 'Inheritance' tab in the class page of the
+Status Monitor.
+</P>
+<P>
+Now we want to tell our new wrapper object how to handle the callbacks
+from Java.  We'll add the following method to 
+<CODE class="Smalltalk">StaticOMJEgTreeNodeExample</CODE>:
+</P>
+<PRE><CODE class="Smalltalk">notifyRegistered
+    | callbackRegistry |
+
+    callbackRegistry := self jvm callbackRegistry ifNil: [^ self].
+
+    callbackRegistry
+        setCallback: self getChildTag_null
+	handler: [:it :params | self handleGetChild: params].
+    callbackRegistry
+        setCallback: self getChildCountTag_null
+	handler: [:it :params | self handleGetChildCount: params].
+    callbackRegistry
+        setCallback: self getIndexOfChildTag_null
+	handler: [:it :params | self handleGetIndexOfChild: params].
+</CODE></PRE>
+<P>
+That method is normally called by JNIPort as the wrapper class is first
+registered.  It won't have been called yet, though, so you can either
+restart JNIPort again <I>&lt;evil grin&gt;</I>, or you can find the
+class static and send it the message manually with code like:
+</P>
+<PRE><CODE class="Smalltalk">	class := jvm findClass: #'org.metagnostic.jniport.eg.TreeModelExample'.
+	class notifyRegistered.
+</CODE></PRE>
+<P>
+whichever you do, you should find that the Status Monitor's
+<A href="status-monitor-status.html">status page</A> now shows that the number
+of registered callbacks has gone up by three.
+</P>
+<P>
+What the <CODE class="Smalltalk">notifyRegistered</CODE> method does, is to
+find the three tags for the callbacks using the static getters that we defined
+(the calls to <CODE class="Smalltalk">self getChildTag_null</CODE> etc),
+and then to register a handler block for each with the callback registry.
+The handler blocks take two arguments which correspond to the originator
+and parameter of the callback requests.
+</P>
+<P>
+Note the check that the callback registry isn't <CODE class="Smalltalk">nil</CODE>,
+that is equivalent to checking that the JVM object supports callbacks.  Without
+the test, JNIPort would encounter errors as it tried to register this wrapper
+if callbacks were not enabled.
+</P>
+<P>
+Each handler block just forwards the parameter to a corresponding handler
+method; we now have to write those.  Start with the handler for 'getChildCount':
+</P>
+<PRE><CODE class="Smalltalk">handleGetChildCount: aJavaLangString
+	"called from Java as the implementation of int getChildCount(Object)"
+
+	| name classes |
+
+	name := aJavaLangString asString.
+
+	"get list of subclasses"
+	classes := name = '&lt&lt;root&gt;&gt;'
+			ifTrue: [Class allRoots]
+			ifFalse: [(Smalltalk at: name) subclasses].
+
+	"we want to return the number of subclasses as a java.lang.Integer"
+	^ (jvm findClass: #'java.lang.Integer') new_int: classes size.
+</CODE></PRE>
+<P>
+Recall that in this case the parameter to the callback was just the string
+name of a class.  The implementation is straightforward: convert the Java
+string to a Smalltalk string, find the named Smalltalk class, find out
+how many direct subclasses it has, and return a
+<CODE class="java">java.lang.Integer</CODE> that encodes that number.
+The only complication is that we use the special string '&lt&lt;root&gt;&gt;'
+to ask for the list of root classes.
+</P>
+<P>
+This method doesn't bother with any error checking, which would not be a good
+idea for production code, but it keeps the example simple.  If any errors
+did occur, then they would be trapped by JNIPort and rethrown as Java
+errors in the caller.  (Which means, by the way, that you won't get
+walkbacks from errors in hander code.  You <EM>can</EM> put breakpoints in
+handlers if you wish.)
+</P>
+<P>
+The next of our handler methods is the implementation of the 'getChild'
+request:
+</P>
+<PRE><CODE class="Smalltalk">handleGetChild: aJavaArray
+	"called from Java as the implementation of Object getChild(Object, int)"
+
+	| name index classes class |
+
+	name := aJavaArray at: 1.	"should be a java.Lang.String naming a class or '&lt&lt;root&gt;&gt;'"
+	name := name asString.
+
+	index := aJavaArray at: 2.	"should be a java.lang.Integer (0-based)"
+	index := index intValue_null + 1.
+
+	"get list of subclasses"
+	classes := name = '&lt&lt;root&gt;&gt;'
+			ifTrue: [Class allRoots]
+			ifFalse: [(Smalltalk at: name) subclasses].
+
+	"we want to return the name of the indexed subclass as a Java string"
+	class := classes at: index ifAbsent: [^ nil].
+	^ class name asJavaString: self jvm.
+</CODE></PRE>
+<P>
+In this case, remember, the caller passed two arguments packed into a Java
+array, so the first thing we do is unpack them.  The first element is the
+name of the parent class, the second is an <CODE class="java">java.lang.Integer</CODE>
+that encodes the 0-based index of the child.
+</P>
+<P>
+Having unpacked the parameters, we get the list of subclasses of the named class
+(again treating '&lt&lt;root&gt;&gt;' specially), find the indexed element of that
+list, and return its name converted to a Java string.
+</P>
+<P>
+The last of our handler methods is the implementation of the 'getIndexOfChild'
+request:
+</P>
+<PRE><CODE class="Smalltalk">handleGetIndexOfChild: aJavaArray
+	"called from Java as the implementation of Integer getIndexOfChild(Object, Object)"
+
+	| parentName childName classes child index |
+
+	parentName := aJavaArray at: 1.	"should be a java.Lang.String naming a class or '&lt&lt;root&gt;&gt;'"
+	parentName := parentName asString.
+
+	childName := aJavaArray at: 2.	"should be a java.Lang.String naming a class"
+	childName := childName asString.
+
+	"get list of subclasses"
+	classes := parentName = '&lt&lt;root&gt;&gt;'
+			ifTrue: [Class allRoots]
+			ifFalse: [(Smalltalk at: parentName) subclasses].
+
+	"find child"
+	child := Smalltalk at: childName.
+	index := classes indexOf: child.
+
+	"we want to return the index (0-based) as a java.lang.Integer"
+	^ (jvm findClass: #'java.lang.Integer') new_int: index-1.
+</CODE></PRE>
+<P>
+Which is similar to the previous two handlers.
+</P>
+<P>
+All this Smalltalk code is provided as part of the 'CU Java Examples' package.
+</P>
+<H3>Running It</H3>
+<P>
+Now we are in a position to try out our new code.  We'll create the Swing
+window from a workspace.  We start,
+as always, by getting a reference to the JVM object:
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+</CODE></PRE>
+<P>
+First we make an instance of our tree model class:
+</P>
+<PRE><CODE class="Smalltalk">	tm := (jvm findClass: #'org.metagnostic.jniport.eg.TreeModelExample') new.
+</CODE></PRE>
+<P>
+You could test it out from the workspace if you wanted.  For instance:
+</P>
+<PRE><CODE class="Smalltalk">	root := tm getRoot_null.
+	tm getChildCount_Object: root.
+		"--> 2"
+	tm getChild_Object: root int: 0.
+		"--> a java.lang.String(Object)"
+</CODE></PRE>
+<P>
+Now we make a Swing window to display the tree model.  If this is the first
+time you have loaded any Swing class in this JNIPort session then there will
+be the usual irritating delay as JNIPort loads lots of Swing classes.  We
+create a frame, add a scrolling pane within it, and a JTree within that.
+We tell the JTree to use our tree model as the source of its data.
+See the Java documentation for how it all fits together.
+</P>
+<PRE><CODE class="Smalltalk">	frame := (jvm findClass: #'javax.swing.JFrame') new_String: 'Smalltalk Classes'.
+	frame setDefaultCloseOperation_int: (frame static get_DISPOSE_ON_CLOSE).
+	tree := (jvm findClass: #'javax.swing.JTree') new_TreeModel: tm.
+	pane := (jvm findClass: #'javax.swing.JScrollPane') new_Component: tree.
+	frame getContentPane_null add_Component: pane.
+	tree setRootVisible_boolean: false.
+	tree setShowsRootHandles_boolean: true.
+	frame pack_null; setVisible_boolean: true.
+</CODE></PRE>
+<P>
+And then&hellip;
+</P>
+<P>
+<I>Ta da&hellip;</I>
+</P>
+<P>
+<IMG
+	src="callback-example-1.gif"
+	alt="Swing Tree Component showing Smalltalk Class Hierarchy">
+</P>
+<P>
+You will probably notice that it is pretty slow, especially if you open up
+the 'Object' branch, and then scroll around.  One reason is that Swing is
+sending lots of callbacks as it scrolls (on the order of 100 per second
+on my machine), and callbacks are slow.  The other is that JNIPort is
+creating lots of wrappers for references to Java objects; if you look
+at the <A href="status-monitor-history.html">history page</A> of the
+status monitor, then you should see that scrolling the tree is causing
+JNIPort to create and discard perhaps a thousand wrapper objects per second.
+</P>
+<P>
+There is an important lesson to be learned from this.  As the section
+on callbacks warns, callbacks are slow and are not suited to creating
+tight integration between Java and Smalltalk code.
+</P>
+<P>
+In this case, a better implementation would probably have used a cache
+in the Java tree object and only called back into Smalltalk when it needed
+to fill, or refresh, the cache.  Another possibility would be to avoid
+callbacks altogether, and to create and populate the tree object entirely by
+calling down from Smalltalk into Java.
+</P>
+<HR>
+<H2>Using Events</H2>
+<P>
+Now that we have our tree showing Smalltalk classes, we can use it to
+experiment with Java events.  JNIPort includes a way to arrange that
+Java events can be forwarded into Smalltalk, see
+<A href="callbacks.html#Events">events</A> in the Callbacks section for the
+background.  We'll use it now to observe selection change events in the tree.
+</P>
+<P>
+Firstly we are going to have the selection change events triggered off
+the Smalltalk proxy for the Java tree pane.  However that means that we
+must ensure that we are using a
+<A href="java-base.html#Canonical References">canonical</A> reference
+to the pane.  That is easily arranged by sending
+<CODE class="Smalltalk">#beCanonical</CODE> to its proxy, which will ensure
+that JNIPort uses the same proxy for all references to that Java object.
+(It doesn't do that by default to avoid doing a lookup for every new reference
+to a Java object):
+</P>
+<PRE><CODE class="Smalltalk">	tree beCanonical.
+</CODE></PRE>
+<P>
+Now we find the Java event we are interested in.  In Java events are
+represented as methods in listener interfaces, so start by finding
+the selection changed method; the one we want is
+<CODE class="Java">valueChanged()</CODE> in interface
+<CODE class="Java">javax.swing.event.TreeSelectionListener</CODE>:
+</P>
+<PRE><CODE class="Smalltalk">	interface := jvm findClass: #'javax.swing.event.TreeSelectionListener'.
+	eventMethod := interface abstractMethods
+			detect: [:each | each name = 'valueChanged'].
+</CODE></PRE>
+<P>
+Next we create an event forwarder.  That is a Java object that implements the
+<CODE class="Java">TreeSelectionListener</CODE> interface by forwarding the
+selection changed event into Smalltalk:
+</P>
+<PRE><CODE class="Smalltalk">	forwarder := eventMethod eventForwarder: #selectionChanged:.
+</CODE></PRE>
+<P>
+Creating the forwarder also sets up a handler for the callback that will trigger
+<CODE class="Smalltalk">#selectionChanged:</CODE> (in this case) off
+the Smalltalk proxy for the source of the event.
+</P>
+<P>
+Now all we have to do is to add our new listener object to the tree pane's list
+of observers:
+</P>
+<PRE><CODE class="Smalltalk">	tree addTreeSelectionListener_TreeSelectionListener: forwarder.
+</CODE></PRE>
+<P>
+And now, any selection changes will be reported in Smalltalk space as 
+<CODE class="Smalltalk">#selectionChanged:</CODE> events triggered off the
+<CODE class="Smalltalk">tree</CODE> object.  The parameter to the event will be
+the <CODE class="Java">javax.swing.event.TreeSelectionEvent</CODE> object
+that the Java tree pane generates and passes as an argument to 
+<CODE class="Java">valueChanged()</CODE>, it contains details of what has
+changed.
+</P>
+<P>
+Use your favourite event tracing tool to verify that it is working.
+</P>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

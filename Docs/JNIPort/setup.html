@@ -1,0 +1,204 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Configuring JNIPort</H1>
+<P>
+JNIPort is controlled by <DFN>settings</DFN> objects.  Each JVM object, and the Java runtime that
+it manages, is configured from an instance of class <CODE class="Smalltalk">JVMSettings</CODE>.
+Each settings object is made up of a number (up to six in the current version of JNIPort) of
+subsettings objects, each configuring one aspect of the system.
+</P>
+<P>
+Settings objects are just normal, albeit rather dumb, Smalltalk objects.  You can create them
+programmatically if you wish.  However they also know how to save/restore themselves in the Windows
+registry.
+</P>
+<P>
+The <CODE class="Smalltalk">JVMSettings</CODE> class itself maintains a special instance, the
+<DFN>template</DFN> that is cloned whenever a new instance is created.  The template is a
+&ldquo;published aspect&rdquo; of the class.  The point is that most settings objects you use
+will be very similar, but will also be specific to your installation.  Using a template means
+that you can change the defaults for new settings objects to suit yourself without
+having to modify JNIPort code, or use subclassing.
+</P>
+<P>
+The class also contains a list of pre-defined settings.  Each has a name, and one way of
+starting a new JVM is to ask for one that has been configured from a named pre-defined
+settings object.  That is how the <A href="status-monitor.html">Status Monitor</A> does it.
+The list is also a &ldquo;published aspect&rdquo; of the class.
+</P>
+<P>
+You can edit both the template and the pre-defined list from the Status Monitor. Currently
+it just uses a Published Aspect Inspector'; though I plan to add a custom editor in some
+later version.  You can also save/restore the pre-defined settings in the registry from the
+Status Monitor.
+</P>
+<P>
+The <A href="walkthrough.html">walkthrough</A> section gives a couple of simple examples of
+configuring JNIPort.
+</P>
+<!-- UPDATEME -->
+<P>
+The rest of this section gives a quick overview of each of the subsettings.  More information
+can be gleaned from the code for the corresponding subclasses of
+<CODE class="Smalltalk">JVMSubSettings</CODE>.
+Of the six sub-settings, two are fundamental to JNIPort, two are optional, one is trivial,
+and one is still experimental.
+They are:
+</P>
+
+<DL>
+
+<DT><CODE class="Smalltalk">#runtimeSettings</CODE></DT>
+<DD><P>
+These hold the settings that are passed to the Java runtime.  It mostly is just a
+list of Strings.  Each string corresponding to the parameters that you would pass
+on the command line to the <CODE>java.exe</CODE> program.  See the documentation
+for your Java runtime for what parameters it understands.  Two special cases are
+also exposed as editable aspects, the <CODE class="Smalltalk">#classpath</CODE>
+and <CODE class="Smalltalk">#libpath</CODE>.
+</P></DD>
+
+<DT><CODE class="Smalltalk">#jniPortSettings</CODE></DT>
+<DD><P>
+These configure the basics of JNIPort.
+</P>
+<P>
+The choice of which JVM.DLL to use is set by <CODE class="Smalltalk">#jniLibraryClass</CODE>,
+with possible tweaking from <CODE class="Smalltalk">#jniLibraryJVMType</CODE> and
+<CODE class="Smalltalk">#jniLibraryVersion</CODE>.  For instance, setting these to
+(respectively) <CODE class="Smalltalk">JNILibraryForSunJ2SDK</CODE>, 
+<CODE class="Smalltalk">'server'</CODE>, and 
+<CODE class="Smalltalk">'1.4.0'</CODE> will force JNIPort to try to use the server
+JVM from the 1.4.0 release of Sun's J2SDK.  Leaving the version or JVMtype nil
+allows JNIPort to pick up the defaults for that vendor.
+</P>
+<P>
+You can also set the JVM.DLL explicitly by giving the filename, in which case all the
+above settings are ignored.
+</P>
+<P>
+The <CODE class="Smalltalk">#jvmClass</CODE> sets the class used for the JVM object
+itself.  You can choose between one that supports <A href="callbacks.html">callbacks</A>
+and one that does not.  If the 'CU Java Callbacks' package is not installed then you
+will not be given a choice.
+</P>
+<P>
+The <CODE class="Smalltalk">#watcherClasses</CODE> configures a possible list of
+<DFN>watchers</DFN>.  These are objects that &ldquo;watch&rdquo; the JVM object and
+take certain actions in response to specific events.  Currently the only use of this
+is that if you have a <CODE class="Smalltalk">JVMGhostClassMaker</CODE> or a
+<CODE class="Smalltalk">JVMLazyGhostClassMaker</CODE> on the list, then it will
+make ghost classes for each new Java class that JNIPort discovers.  (NB: it is
+likely that this setting will go away in the future to be replaced with a simpler
+choice between different ghost class implementations or none.)
+</P>
+<P>
+The remaining settings configure whether JNIPort will use the JVM's debugging hooks
+to monitor what it's doing.  Normally it is unsafe to use these unless you are also
+using the <A href="jni-helper.html">JNI Helper</A> library.
+</P></DD>
+
+<DT><CODE class="Smalltalk">#wrapperGenerationSettings</CODE></DT>
+<DD><P>
+This sub-setting is optional and will only be present if the 'CU Java Wrapper Generation'
+package is installed.  It sets what members of a Java class will have wrapper methods
+generated for them by default.  The most important effect of this is that it sets the
+defaults for the <A href="wrapper-wizard.html">Wrapper Wizard</A>.
+</P></DD>
+
+<DT><CODE class="Smalltalk">#ghostClassSettings</CODE></DT>
+<DD><P>This sub-setting is optional and will only be present if the 'CU Java Ghost Classes'
+package is installed.  It is similar to (though not the same as) the
+<CODE class="Smalltalk">#wrapperGenerationSettings</CODE>.  Since ghost class generation
+is automatic, these settings will affect all classes that do not have code to override
+the defaults (there are no such classes in this version of JNIPort).
+</P>
+<P>
+Note that these settings only control <em>how</em> ghost classes are used, not <em>whether</em>
+they are used at all.  That is set as part of the <CODE class="Smalltalk">#jniPortSettings</CODE>
+settings, above.  (Which is not, in fact, at all logical, so I may change it in a future
+version.)
+</P>
+<P>
+You probably won't need to change any of these settings from their defaults, though you
+are welcome to do so should you wish.
+</P></DD>
+
+<DT><CODE class="Smalltalk">#statusMonitorSettings</CODE></DT>
+<DD><P>This sub-setting is pretty trivial, and will only be present if the <A href="status-monitor.html">JVM Status Monitor</A>
+tool is installed.  The settings are only used by that tool, not by JNIPort itself.
+<P>
+The <CODE class="Smalltalk">#javadocPath</CODE> can be set to a ;-separated list of
+directories that are the roots of JavaDoc file hierarchies.  The browse JavaDoc option of
+the classes page uses this (plus its own global 'JavaDoc path' setting) to look for
+JavaDocs when you use the F12/browse-definition option.
+</P>
+<P>
+The <CODE class="Smalltalk">#defaultSampleSize</CODE> and
+<CODE class="Smalltalk">#defaultUpdateInterval</CODE> set the inital values for the corresponding
+options when a new JVM instance is started.
+</P></DD>
+
+<!-- UPDATEME -->
+<DT><CODE class="Smalltalk">#supplementaryClassloaders</CODE></DT>
+<DD><P>This sub-setting is used to configure the initial set of supplementary classloaders,
+if any, which will be created when a JVM is started.  The feature is still experimental;
+I'll document it better once I'm sure it is stable, until then see the class comment on
+<code class="Smalltalk">SupplementaryClassloader</code> for some explanation.
+</P></DD>
+
+</DL>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

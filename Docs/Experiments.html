@@ -1,0 +1,673 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>Experimental stuff for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>Experimental stuff for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><A href="index.html">Goodies</A></P>
+		<P><A href="JNIPort.html">JNIPort</A></P>
+		<P><A href="ZKit.html">Z-Kit</A></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><A href="SpaceBreakdown.html">Space Breakdown</A></P>
+		<P><A href="FMB.html">F.M.B.</A></P>
+		<P><A href="Ghoul.html">Ghoul</A></P>
+		<P><A href="Miscellanea.html">Miscellanea</A></P>
+		<P><strong>Experiments</strong></P>
+		<P><A href="Changes.html">Changes</A></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<P>
+This page collects together some miscellaneous experimental stuff.  That's to say, stuff that I've
+been playing with, but &mdash; for one reason or another &mdash; haven't finished or don't take
+seriously enough to &ldquo;freeze&rdquo;.  You could say that this is a collection of code that
+I think someone might be interested to <em>see</em> but probably not actually <em>use</em>.
+</P>
+<P>
+In some cases I write a package just to see how the code fits together rather than out of any
+real need to use it &mdash; which, if I publish it at all, obviously means that it belongs here.  
+<A href="#CU 3-Way Sorting">3-Way Sorting</A> is an example of such purely experimental code.
+</P>
+<P>
+Another reason for a package to be here is that although it might be interesting to others, and
+is mature code that I use a lot, it was really only designed for my own idiosyncratic uses; the
+<A href="#CU Browser Database">Browser Database</A> is an example.
+</P>
+<P>
+In still other cases I've put together code because I know will need it later, and the only reason
+that it's here is that that &ldquo;later&rdquo; hasn't happened yet ;-) and so I consider it
+to be immature (for instance the <A href="#CU Selection From List Presenter">Selection From List
+Presenter</A>).  It's sometimes pretty arbitrary whether a package ends up in this collection,
+given its own page, or dumped into <A href="Miscellanea.html">Miscellanea</A>.  In general I'm
+using the rule that stuff should still be considered to be immature until I've used it for a
+few things myself.
+</P>
+<P>
+Given the nature of these packages, the level of documentation is variable &mdash; most typically
+in the range from poor to non-existent.  Some packages and classes have comments, most do not (methods
+<em>do</em> have comments &mdash; as a matter of course).  Also, because much of this code is
+still immature, I have no particular intention of following my normal version number discipline.
+If I make changes, then I'll change the version numbers, but whether I change the major or
+minor number, and by how much, will depend on the phase of the moon, or on some other whim.
+</P>
+<HR>
+<P>
+The packages are (in alphabetical order):
+</P>
+<DL>
+<DT><B><A name="CU 3-Way Sorting">3-Way Sorting</A></B></DT>
+	<DD>
+	<P>
+	It has always seemed odd to me that we insist on representing the result of a
+	comparison by a Boolean value when there are <em>three</em> possible results.
+	This package defines a method, <code class="Smalltalk">#&lt;=&gt;</code>, and
+	three classes (modelled on the <code class="Smalltalk">True</code> and
+	<code class="Smalltalk">False</code> classes) for doing three-way comparison
+	and representing the results.  The idea is that the
+	<code class="Smalltalk">ComparisonResult</code> objects invoke polymorphically
+	varying behaviour, so you can say things like:
+	</P>
+	<PRE><CODE class="Smalltalk">	(aString <=> anotherString)
+		ifMore: ["some code"]
+		ifSame: ["some other code"]
+		ifLess: ["still more code"].</CODE></PRE>
+	<P>
+	Three-way comparison should also allow more efficient sorting (since more information
+	is available to the algorithm from each comparison operation).  The package includes
+	a preliminary and incomplete <code class="Smalltalk">ThreeWaySortedCollection</code>
+	which implements a 3-way QuickSort (it's supposed to provide other algorithms too, but
+	I haven't written that yet).
+	</P>
+	<P>Status: purely experimental, incomplete, partially documented.</P>
+	</DD>
+
+<DT><B><A name="CU Browser Database">Browser Database</A></B></DT>
+	<DD>
+	<P>
+	There are a number of things that it would be nice to do in the Dolphin
+	IDE that need a fast way of checking cross-references between methods.
+	The Browser Database provides that.
+	</P>
+	<P>
+	It builds up an internal database (taking around 1MByte in my image) of which
+	methods refer to, or are referred to by, which.  Then it maintains that data
+	by hooking the system change notifications, and rebuilding the tables as methods
+	are changed or otherwise recompiled (e.g. because of a class definition change).
+	Once the database has been built (which takes several seconds), you can issue
+	various queries about cross-referencing.
+	</P>
+	<P>
+	Since rebuilding the data can slow down the system somewhat (especially if
+	you change the definition of a class with many subclasses), the
+	database can be paused or stopped, and then re-started later.  When the
+	package is first loaded, the database is not active, but can be activated
+	by evaluating:
+	</P>
+	<PRE><CODE class="Smalltalk">	BrowserDatabase current beRunning.</CODE></PRE>
+	<P>
+	This package also includes three applications of the database, all are new
+	virtual method categories.  One marks methods that are overridden in a subclass;
+	one marks methods that are not referred to anywhere; and the last marks methods
+	that refer to undefined methods.
+	</P>
+	<P>Status: stable (I use it constantly), idiosyncratic, largely undocumented.</P>
+	</DD>
+
+<DT><B><A name="CU Browser Database UI">Browser Database UI</A></B></DT>
+	<DD>
+	<P>
+	A simple &ldquo;Additional Tool&rdquo; that provides a GUI for
+	controlling (starting, stopping, pausing) and monitoring the
+	current Browser Database.
+	</P>
+	<P>Status: stable, idiosyncratic, undocumented, trivial.</P>
+	</DD>
+
+<DT><B><A name="CU Derived List Model">Derived List Model</A></B></DT>
+	<DD>
+	<P>
+	A DerivedListModel is a &rdquo;view&ldquo; (in the database sense) of another ListModel,
+	mediated by a filter block, and allowing its elements to be sorted without affecting the
+	underlying ListModel.  This package also includes a flavour of ListPresenter that is able
+	to make proper use of DerivedListModels.
+	</P>
+	<P>
+	Status: immature, documented.
+	</P>
+	</DD>
+
+<DT><B><A name="CU Easter">Easter</A></B></DT>
+	<DD>
+	<P>
+	A few loose methods added to the Date class for calculating Western Christian Easter in
+	various years.  This code is based on an algorithm that is plastered all over the Web.
+	</P>
+	<P>
+	Status: stable, would be in Miscellanea if it weren't so limited in scope, not to
+	mention being specific to a rather restricted culture.
+	</P>
+	</DD>
+
+<DT><B><A name="CU Enhanced Scrolling Decorator">Enhanced Scrolling Decorator</A></B></DT>
+	<DD>
+	<P>
+	A slightly enhanced version of the Dolphin <CODE class="Smalltalk">ScrollingDecorator</CODE>.
+	It differs in that you can control whether it has horizontal and vertical scrollbars
+	independently.  Similarly you can set whether it stretches the decorated View horizontally
+	or vertically (if that is smaller than the scrollable area).
+	</P>
+	<P>
+	Status: immature (in occasional use), not much documentation (but I'm
+	not sure that it needs more).
+	</P>
+	</DD>
+
+<DT><B><A name="CU Enhanced Static Text">Enhanced Static Text</A></B></DT>
+	<DD>
+	<P>
+	A slightly enhanced version of the Dolphin StaticText.  You can control how text is
+	aligned both horizontally and vertically, and whether it erases its background before
+	painting the text.
+	</P>
+	<P>
+	Status: immature, and how much documentation can something so trivial need ?
+	</P>
+	</DD>
+
+<DT><B><A name="CU Expression Timer">Expression Timer</A></B></DT>
+	<DD>
+	<P>
+	A utility for timing expressions; it is intended to make some sort of
+	pretence at statistical validity, rather than just running the expression
+	several times and averaging the runtimes.
+	</P>
+	<P>
+	It is undoubtedly over-elaborate (it's very old code), but I may make it even
+	more elaborate someday by sticking a GUI on it&hellip;
+	</P>
+	<P>
+	Status: stable (I've been using it for ages), idiosyncratic, over-documented.
+	</P>
+	</DD>
+
+<DT><B><A name="CU Extra Categories">Extra Categories</A></B></DT>
+	<DD>
+	<P>
+	Three additional virtual method categories.
+	<P>
+	One marks loose methods (ones that are not in the same package as their class).
+	</P>
+	<P>
+	The second marks methods that appear to use Smalltalk's reflective and meta-programming
+	features (such as <CODE class="Smalltalk">#become:</CODE>,
+	<CODE class="Smalltalk">#isKindOf:</CODE>, etc).  This is implemented as an
+	application of a more general method category class whose instances mark methods
+	that refer to any of a configurable list of symbols.
+	</P>
+	<P>
+	The last marks methods that define/override the meta-programming methods.  Again,
+	it is defined as an application of a more general method category class which
+	is defined by a list of selectors.
+	</P>
+	<P>Status: stable (in constant use), idiosyncratic, documented.</P>
+	</DD>
+
+<DT><B><A name="CU Extra Collections">Extra Collections</A></B></DT>
+	<DD>
+	<P>
+	Some additional Collections implementations:
+	</P>
+	<P>
+	Arrays of 1-bit quantities implemented as bitmaps.  These also define fast
+	logical and boolean operations (xor, etc) between pairs of such arrays.
+	</P>
+	<P>
+	A fast implementation of sets of integers drawn from a small(-ish)
+	range.  Uses a bitmap internally.
+	</P>
+	<P>
+	A specialised Set that is optimised for finding elements with a
+	particular &ldquo;key&rdquo;.
+	</P>
+	<P>Status: immature, documented.</P>
+	</DD>
+
+<DT><B><A name="CU Form Layout">Form Layout</A></B></DT>
+	<DD>
+	<P>
+	A layout manager that lays out components as a list of
+	&lt;label, value&gt; pairs.
+	</P>
+	<P>Status: immature, documented.</P>
+	</DD>
+
+<DT><B><A name="CU Graphics Base">Graphics Base</A></B></DT>
+	<DD>
+	<P>
+	I've added this package to the Experiments page only because it and the 'CU Printing'
+	package are designed to work together.  This is work in progress.
+	</P>
+	<P>Status: See <A href="#CU Printing">Printing</A>.</P>
+	</DD>
+
+<DT><B><A name="CU LRU Cache">LRU Cache</A></B></DT>
+	<DD>
+	<P>
+	A simple implementation of a Dictionary with fixed maximum capacity, and which uses
+	a Least-Recently-Used algorithm to evict &rdquo;unused&ldquo; key-value pairs in order
+	to make room for new elements.
+	</P>
+	<P>Status: immature, documented.</P>
+	</DD>
+
+<DT><B><A name="CU PolyViewer">PolyViewer</A></B></DT>
+	<DD>
+	<P>
+	The easiest way to explain this one is to give something of its history.
+	When I started programming Dolphin, I found that many of the applications I
+	was considering followed the same pattern for their GUIs &mdash; they consisted
+	of a single Model and a tabbed collection of different Views onto that (shared)
+	model.  Exactly which Views were needed would depend not only on the application,
+	but also on more dynamic considerations, such as what the user (typically me)
+	wanted to do at the time.
+	</P>
+	<P>
+	So I ended up putting together what I called the &ldquo;PolyViewer Framework&rdquo;
+	in which an application is defined as a shell into which a dynamically configurable
+	number of pluggable sub-views can be added as independent tabs.  Each sub-view also
+	defines what items it wants on the shell's main menu, and one of the jobs of the
+	framework is to merge the various menus (eliminating duplicate commands).
+	</P>
+	<P>
+	It also has features to allow pluggable extensions to the menus with commands
+	that are not implemented by a specific tab.  I've always intended to provide a way
+	of building (dynamically) a toolbar by merging the sub-views' own toolbar specifications,
+	but I've never finished that bit&hellip;
+	</P>
+	<P>
+	This is pretty old code, and could do with a bit of a polish-up and some simplification
+	(not to mention finishing the toolbar stuff).  But, on the other hand, it works as
+	it is, so why mess with it ?
+	</P>
+	<P>Status: stable (in constant use), incomplete, some documentation.</P>
+	</DD>
+
+<DT><B><A name="CU Printing">Printing</A></B></DT>
+	<DD>
+	<P>
+	This is the <strong>start</strong> of an attempt at a printing framework.
+	</P>
+	<P>
+	It is, as yet, not only incomplete, but also I know that quite large chunks of
+	it will be redesigned.  I do already use it for a couple of real applications,
+	but it's not by any means ready for prime-time.  I include it in this collection
+	because there don't seem to be many examples of doing printing from Dolphin (Ian
+	Bartholomew has some example, of course, but he uses a rather different approach
+	mostly based on the Rich Text controls, whereas this just draws raw graphics).
+	</P>
+	<P>
+	There's virtually no documentation (since the design is still fluid), but if you
+	are interested then you can open a print preview of an example document by evaluating:
+	</P>
+	<PRE><CODE class="Smalltalk">	provider := ExamplePageProvider pageCount: 21.
+	(PrintPreviewShell showOn: provider)
+		isLandscapeView: true;
+		isSmallView: true;
+		yourself.</CODE></PRE>
+	<P>
+	That creates a &ldquo;page provider&rdquo; (which is any object that knows how to
+	draw a requested page onto a region of a canvas), and then passes it to a
+	print-preview window which can show the pages in various ways.  If you ask the preview
+	window to print the &ldquo;document&rdquo; then it will launch a printer select/setup
+	dialog, and then pass the page provider to a print-progress window which will, in turn,
+	send the selected pages to the printer.
+	</P>
+	<P>
+	This requires Ian Bartholomew's 'Printer WinAPI' package which is available as part of
+	his (excellent) goodies collection <A href="http://www.idb.me.uk/">here</A>.
+	</P>
+	<P>Status: very immature, incomplete, in flux, undocumented, you have been warned&hellip;</P>
+	</DD>
+
+<DT><B><A name="CU Quick Deploy">Quick Deploy</A></B></DT>
+	<DD>
+	<P>
+	Quick Deploy is a simple GUI tool to provide nearly-one-click-deployment (actually,
+	it's more like three-clicks, but that's good enough for me).  It is intended to help
+	make deployment from a clean image (which is the only sensible way of doing deployment,
+	in my opinion) simple and convenient.
+	</P>
+	<P>
+	The package comment gives details of how best to use it.
+	</P>
+	<P>Status: stable, idiosyncratic, documented.</P>
+	</DD>
+<!--
+<DT><B><A name="CU Resource Writer">Resource Writer</A></B></DT>
+	<DD>
+	<P>
+	A few classes that allow you to copy Windows resources between DLLs (and
+	.EXE files &mdash; such as the Dolphin deployment stub executables), and to
+	remove existing resources from DLLs.  Also includes the ability to import and
+	export icon, cursor, and bitmap resources from and to the corresponding .ICO,
+	.CUR, and .BMP files.
+	</P>
+	<P>Status: immature, documented(-ish).</P>
+	</DD>
+-->
+
+<DT><B><A name="CU Safer Maths">Safer Maths</A></B></DT>
+	<DD>
+	<P>
+	This adds a few methods to <CODE class="Smalltalk">LargeInteger</CODE> and
+	<CODE class="Smalltalk">Fraction</CODE> which eliminate some avoidable floating-point
+	overflows when working with very high precision Integers and Fractions.
+	</P>
+	<P>
+	Note that <em>most</em> such overflows are <em>not</em> avoidable!
+	</P>
+	<P>Status: stable, should probably be in Miscellanea.</P>
+	</DD>
+
+<DT><B><A name="CU Selection From List Presenter">Selection From List Presenter</A></B></DT>
+	<DD>
+	<P>
+	A kind of Presenter that allows a user to select several items from a list, and (optionally,
+	depending on the View) to choose their order.  It looks like the 2-pane selection components
+	used by Windows in various places.  (I have once seen this kind of UI component called a
+	&ldquo;shuffle-box&rdquo; &mdash; I like that name, but I don't think it's in wide use.)
+	</P>
+	<P>
+	It is intended to be more-or-less a straight plugin replacement for a ListPresenter
+	showing a multiple selection list view.
+	</P>
+	<P>
+	This package also includes replacements for <CODE class="Smalltalk">ChoicePresenter</CODE>
+	and <CODE class="Smalltalk">ChoicePrompter</CODE> that use this component instead of a
+	multiple-selection list view.
+	</P>
+	<P>Status: immature, documented.</P>
+	</DD>
+
+<DT><B><A name="CU Simple Resource Plugin">Simple Resource Plugin</A></B></DT>
+	<DD>
+	<P>
+	A simple plugin for the Dolphin class, and system, browsers that allows you to manage and
+	browse the selected class's resources.
+	</P>
+	<P>
+	This is an enhanced version of the code I posted to comp.lang.smalltalk.Dolphin
+	at the end of January 2005.
+	</P>
+	<P>
+	Status: immature (I don't actually use this myself, but use a different implementation
+	of the same concept), lightly documented.
+	</P>
+	</DD>
+
+<DT><B><A name="CU Valuable as Value">Valuable as Value</A></B></DT>
+	<DD>
+	<P>
+	This rather weird (and largely untested) hack allows a Block to be used in place of a
+	&rdquo;normal&ldquo; value (automatically evaluating itself on each use).
+	</P>
+	<P>
+	This is code I posted to comp.lang.smalltalk.Dolphin at the end of January 2004.
+	</P>
+	<P>
+	Status: just plain weird.
+	</P>
+	</DD>
+
+<DT><B><A name="CU Wave Out">Wave Out</A></B></DT>
+	<DD>
+	<P>
+	Small package that wraps (some of) the low-level Windows "Wave Out" APIs for
+	playing sounds.
+	</P>
+	<P>
+	It provides player objects that can play buffers of wave data held in memory,
+	rather than being limited to reading data from files.
+	The players can also be configured to run in an infinite loop, recycling
+	the buffers and refilling them by computing new data on demand.
+	</P>
+	<P>
+	Status: immature, documented.
+	</P>
+	</DD>
+
+<DT><B><A name="CU Weirdness">Weirdness</A></B></DT>
+	<DD>
+	<P>
+	A little demo of some ways to use Dolphin to produce an unconventional user interface.
+	</P>
+	<P>
+	It requires the 'WalicXe - Widgets' package from
+	<A href="http://www.walicxe.com/pages/descargas.htm">here</A> and and Udo Schneider's
+	'US LayeredView' package from <A href="http://udos.swiki.net/3">here</A>.
+	</P>
+	<P>
+	Status: merely a demo.
+	</P>
+	</DD>
+
+</DL>
+<HR>
+<H3>Packages</H3>
+
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Package sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>CU 3-Way Sorting</TD>
+		<TD align="right">40813</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD>CU Browser Database</TD>
+		<TD align="right">45875</TD>
+		<TD>1.04</TD>
+	</TR>
+	<TR>
+		<TD>CU Browser Database UI</TD>
+		<TD align="right">15784</TD>
+		<TD>1.04</TD>
+	</TR>
+	<TR>
+		<TD>CU Derived List Model</TD>
+		<TD align="right">23656</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Enhanced Scrolling Decorator</TD>
+		<TD align="right">13841</TD>
+		<TD>1.02</TD>
+	</TR>
+	<TR>
+		<TD>CU Enhanced Static Text</TD>
+		<TD align="right">18940</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Easter</TD>
+		<TD align="right">5064</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Expression Timer</TD>
+		<TD align="right">32997</TD>
+		<TD>1.04</TD>
+	</TR>
+	<TR>
+		<TD>CU Extra Categories</TD>
+		<TD align="right">12754</TD>
+		<TD>1.01</TD>
+	</TR>
+	<TR>
+		<TD>CU Extra Collections</TD>
+		<TD align="right">54817</TD>
+		<TD>1.06</TD>
+	</TR>
+	<TR>
+		<TD>CU Form Layout</TD>
+		<TD align="right">27356</TD>
+		<TD>2.01</TD>
+	</TR>
+	<TR>
+		<TD>CU Graphics Base</TD>
+		<TD align="right">135733</TD>
+		<TD>0.0150</TD>
+	</TR>
+	<TR>
+		<TD>CU LRU Cache</TD>
+		<TD align="right">15955</TD>
+		<TD>2.00</TD>
+	</TR>
+	<TR>
+		<TD>CU PolyViewer</TD>
+		<TD align="right">85322</TD>
+		<TD>1.03</TD>
+	</TR>
+	<TR>
+		<TD>CU Printing</TD>
+		<TD align="right">79110</TD>
+		<TD>0.0031</TD>
+	</TR>
+	<TR>
+		<TD>CU Quick Deploy</TD>
+		<TD align="right">35713</TD>
+		<TD>4.04</TD>
+	</TR>
+	<TR>
+		<TD>CU Safer Maths</TD>
+		<TD align="right">4739</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Selection From List Presenter</TD>
+		<TD align="right">70640</TD>
+		<TD>1.04</TD>
+	</TR>
+	<TR>
+		<TD>CU Simple Resource Plugin</TD>
+		<TD align="right">18785</TD>
+		<TD>1.05</TD>
+	</TR>
+	<TR>
+		<TD>CU Valuable as Value</TD>
+		<TD align="right">3774</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD>CU Wave Out</TD>
+		<TD align="right">84283</TD>
+		<TD>1.08</TD>
+	</TR>
+	<TR>
+		<TD>CU Weirdness</TD>
+		<TD align="right">32896</TD>
+		<TD>1.13</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<P></P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Prerequisite packages' sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Abstract Collections">CU Abstract Collections</A></TD>
+		<TD align="right">51193</TD>
+		<TD>4.02</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Always">CU Always</A></TD>
+		<TD align="right">5976</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Prerequisites.html">CU GDI Extensions</A></TD>
+		<TD align="right">10083</TD>
+		<TD>0.0004 (unpublished)</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Hashed Pair">CU Hashed Pair</A></TD>
+		<TD align="right">10870</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Package-relative File Locator">CU Package-relative File Locator</A></TD>
+		<TD align="right">11829</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Sortblocks">CU Sortblocks</A></TD>
+		<TD align="right">16398</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Storage Size">CU Storage Size</A></TD>
+		<TD align="right">1809</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU String Extensions">CU String Extensions</A></TD>
+		<TD align="right">6885</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Prerequisites.html">CU Tools Base</A></TD>
+		<TD align="right">34422</TD>
+		<TD>0.0009 (unpublished)</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	--></TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+</BODY>

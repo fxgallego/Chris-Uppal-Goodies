@@ -1,0 +1,177 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>Space Breakdown for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>Space Breakdown for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><A href="index.html">Goodies</A></P>
+		<P><A href="JNIPort.html">JNIPort</A></P>
+		<P><A href="ZKit.html">Z-Kit</A></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><strong>Space Breakdown</strong></P>
+		<P><A href="FMB.html">F.M.B.</A></P>
+		<P><A href="Ghoul.html">Ghoul</A></P>
+		<P><A href="Miscellanea.html">Miscellanea</A></P>
+		<P><A href="Experiments.html">Experiments</A></P>
+		<P><A href="Changes.html">Changes</A></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<P>
+This package contains two small tools for investigating what objects are taking up
+space in the image.  They are both intended to give a &ldquo;broad-brush&rdquo;
+impression of what is going on, rather than trying to track down details.
+</P>
+<HR>
+<P>
+The first, <DFN>Space Breakdown</DFN> installs itself in the 'Extra Tools' system
+folder and menu.  Its concept and operation are almost breathtakingly simple.
+It scans all the objects in the image (unfortunately, only the ones that derive
+from <CODE class="Smalltalk">Object</CODE>) and shows a list of how many instances
+of each class there are, and an estimate of how much physical space (in bytes) they
+take up between them.  It also lists how many finalisable instances each class has,
+which can help, for instance, in tracking down resource leaks.
+</P>
+<P>
+<IMG
+	src="SpaceBreakdown.gif"
+	alt="Breakdown of Objects in the image by their classes">
+</P>
+<P>
+The the 'View' menu contains options for setting the thresholds that determine
+which classes will be listed.  By default it shows all classes that are not metaclasses
+and which have at least one instance.
+</P>
+<P>
+The tool can also save its current data to a file (it's stored in CSV format, in case
+you should wish to import it into a spreadsheet &mdash; unlikely, I know&hellip;).  The
+main reason for doing this is that you can then, at a later time, use the 'Compare with
+file' operation (on the 'File' menu) to launch a new list which displays the <EM>differences</EM>
+between the two snapshots.  (The data has to be written to file, rather than
+being stored in the image somewhere, or else it would skew the second snapshot).
+Here's a picture of the difference between two snapshots a few minutes apart.
+</P>
+<P>
+<IMG
+	src="SpaceDifference.gif"
+	alt="Differences between two snapshots">
+</P>
+<HR>
+<P>
+The second tool, <DFN>Reference Breakdown</DFN> is launched from the 'Class' menu of the
+Space Breakdown.  It is launched on one or more selected classes, and scans the
+image looking to see what objects hold onto references to instances of those classes.
+In particular, it looks to see which instance variables the references are held in.
+For instance this screen shot:
+</P>
+<P>
+<IMG
+	src="ReferenceBreakdown.gif"
+	alt="Breakdown references to LargeIntegers by classes and instvars">
+</P>
+<P>
+shows a breakdown of references to <CODE class="Smalltalk">LargeInteger</CODE>.  You
+can see that most of them are used by <CODE class="Smalltalk">CompiledMethods</CODE>
+to hold their <CODE class="Smalltalk">sourceDescriptors</CODE>.  However, the fourth
+row also shows that 328 references are held in <CODE class="Smalltalk">CompiledMethods'</CODE>
+indexed slots &mdash; presumably these are large integer literals in methods.
+</P>
+<HR>
+<H3>Packages</H3>
+
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Package sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD>CU Space Breakdown</TD>
+		<TD align="right">82048</TD>
+		<TD>3.01</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<P></P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<CAPTION>Prerequisite packages' sizes and versions</CAPTION>
+<THEAD>
+	<TR>
+		<TH>Name</TH>
+		<TH>Size</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Hashed Pair">CU Hashed Pair</A></TD>
+		<TD align="right">10870</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Package-relative File Locator">CU Package-relative File Locator</A></TD>
+		<TD align="right">11829</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Sortblocks">CU Sortblocks</A></TD>
+		<TD align="right">16398</TD>
+		<TD>3.01</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU Storage Size">CU Storage Size</A></TD>
+		<TD align="right">1809</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Miscellanea.html#CU String Extensions">CU String Extensions</A></TD>
+		<TD align="right">6885</TD>
+		<TD>1.00</TD>
+	</TR>
+	<TR>
+		<TD><A href="Prerequisites.html">CU Tools Base</A></TD>
+		<TD align="right">34422</TD>
+		<TD>0.0009 (unpublished)</TD>
+	</TR>
+
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	--></TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+</BODY>

@@ -1,0 +1,197 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Infrequently Asked Questions</H1>
+<P>
+This section is a miscellany of observations and explanations that don't
+seem to fit anywhere else.
+</P>
+
+<H4>Why is JNIPort so complicated&nbsp;?</H4>
+<P>
+I hope that most of the complication is on the <EM>inside</EM>; in the implementation rather
+than the in API for users.
+</P>
+<P>
+However, JNIPort is certainly bigger and more complicated than I thought it was going
+to be when I started it (in fact I wouldn't have started if I'd known
+how big it was going to grow).
+</P>
+<P>
+I think that a lot of the complexity is a reflection of the complexity of Java's
+semantic model, and a great deal of the complexity of the <EM>implementation</EM>
+is caused by the shear clunkyness of Java and the JVM at the low level.
+Don't get me wrong; I <EM>like</EM> Java as a programming language (though
+I much prefer Smalltalk) but when you get into the details of the model, and
+the details of the JVM and JNI, then there are a great many rough edges &mdash;
+sometimes it has seemed that there's nothing <EM>but</EM> rough edges.
+</P>
+
+<H4>Why isn't the JVM object a proper Singleton&nbsp;?</H4>
+<P>
+Mainly because the JNI API is structured to allow multiple JVMs, either together or
+one after another.  Also I suspect that I'm going to want additional JVM-like objects
+in future, and while it's not hard to add a Singleton facade to an non-Singleton API,
+unpicking an early design decision to use Singletons can be much more work.
+</P>
+
+<H4>Why have class statics instead of putting the &ldquo;static&rdquo; methods on the
+Smalltalk class-side&nbsp;?</H4>
+<P>
+That would be using long-lived Smalltalk objects (classes) to stand for short-lived
+Java &ldquo;objects&rdquo; &mdash; the representation of a Java class in a Java
+runtime.  I don't like the idea; the semantics don't match and the implementation
+would be unnatural.  At minimum it would <EM>require</EM> a Singleton JVM, since the
+Smalltalk class would have to be able to find a JVM in order to call the Java methods.
+<P>
+</P>
+In fact the ghost class concept <EM>does</EM> tie the life of the class
+to the life of the Java session, and so would allow me to put the static methods onto
+the class-side of the ghost instance classes.  I keep being tempted to follow that route.
+I don't think it would work, though; it'd be adding a great deal of behaviour to
+Smalltalk classes that has nothing to do with their normal role.  (And there'd be
+practical problems too, for instance would #name answer the name of the Smalltalk
+class or the Java class ?)
+</P>
+
+
+<H4>Class statics are always paired with class objects, so why have class
+statics as separate objects at all&nbsp;?</H4>
+<P>
+Early versions of JNIPort didn't separate the roles of class statics and
+class objects, but I found that it wasn't working.  The dual role &mdash; acting as a
+proxy for both the instance of <CODE class="Java">java.lang.Class</CODE> <EM>and</EM>
+the Java class &mdash; was confusing.  It also lead to massive overcomplication of
+<CODE class="Smalltalk">JavaLangClass</CODE>; amongst other things, requiring it to
+have different subclasses for the different kinds of type (class, interface, array,
+primitive).
+</P>
+
+
+<H4>Why use Ghost Classes rather than DNU handling&nbsp;?</H4>
+<P>
+One reason is just that I don't like using DNU to implement special message handling.
+It's fragile (you can't use DNU to override the implementation of an existing
+inherited method) and it is potentially slow (depending on the complexity of the runtime
+lookup/handling you want to do).  In the context of JNIPort, both of these potential problems
+are real issues:
+</P>
+<UL>
+<LI>
+In Java, constructors aren't inherited; so the wrapper for a subclass should not
+inherit factory methods from the wrapper for the superclass.
+</LI>
+<LI>
+Translating from the Smalltalk selector to the corresponding Java method name and signature
+would either be slow or complex (possibly both).  Using ghost classes, the lookup is done once,
+as the class is created, and thereafter is entirely inline.  Calling a Ghost method is, in
+fact, usefully faster than calling a non-ghost method; and that in turn is probably faster than
+DNU handling would be.
+</LI>
+</UL>
+
+
+<H4>
+Why doesn't JNIPort automatically convert returned Java Strings into Smalltalk Strings in
+the same way as it coerces String parameters from Smalltalk to Java&nbsp;?
+</H4>
+<P>
+Efficiency, mostly.  Converting a Java string to Smalltalk is relatively expensive,
+especially if the String is big.  JNIPort doesn't know what you are going to do with
+the String, quite possibly just pass it back to another Java method, so it doesn't
+convert it until you tell it to.
+</P>
+<P>
+There's also the issue that converting the Java string into Smalltalk would drop the reference
+to the Java string, and possibly loose its identity, resulting in a copy being made when a
+duplicate reference was intended.
+</P>
+<P>
+And lastly, there's the point that not all legal Java Strings can be represented in
+Dolphin; not until it gets real Unicode strings. (But when it does, they presumably will
+<EM>be</EM> real Unicode, and support characters outside the 16-bit range, so the same
+problem will exist, but in reverse.  Sigh&hellip;)
+</P>
+
+
+<H4>
+Why doesn't JNIPort automatically convert Smalltalk ByteArrays into Java byte[] arrays in
+the same way as it converts Smalltalk Strings into Java&nbsp;?
+</H4>
+<P>
+Because arrays are mutable; if Java Strings were mutable then JNIPort wouldn't be able to
+coerce those either.
+</P>
+<P>
+JNIPort has no way of knowing what the array is gong to be used for.  If the Java method
+only read from the array, then it'd be safe to create a Java <CODE class="Java">byte[]</CODE>
+from the Smalltalk <CODE class="Smalltalk">ByteArray</CODE>.  However if the
+Java method was going to write to the array, then the call would <EM>seem</EM> to work,
+but the method would be updating a temporary array that would be discarded as soon as
+it returned.  Thus causing puzzlement&hellip;
+</P>
+<P>
+By the way, at one point JNIPort did do this kind of conversion, but when I started using
+<CODE class="Java">java.io.OutputStream.read(byte[])</CODE> I realised that it was just
+too confusing, and removed the feature.
+</P>
+<P>
+Arguably, JNIPort could convert Smalltalk <CODE class="Smalltalk">Integers</CODE> into
+<CODE class="Java">java.lang.Integers</CODE>, and so on, but it hasn't seemed worth it
+so far.  Similarly we could recognise the new &ldquo;varadic&rdquo; methods and automatically
+create Java <code class="Java">java.lang.Object[]</code> arrays to hold their parameters.
+</P>
+
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

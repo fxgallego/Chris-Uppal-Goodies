@@ -1,0 +1,344 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Names of Generated Wrapper Methods</H1>
+<P>
+The topmost level of JNIPort is capable of generating wrapper Smalltalk classes for
+existing Java classes.  The wrapper class has automatically-generated methods that
+allow you to use the Java object as if it were a Smalltalk object.
+</P>
+<P>The generated methods are of two kinds:</P>
+<OL>
+<LI>
+<DFN>Forwarding methods</DFN> that collect together their arguments and forward them to the
+corresponding method of the underlying Java object.
+</LI>
+<LI>
+<DFN>Accessor methods</DFN> that read or set the fields of the underlying Java object.
+</LI>
+</OL>
+<P>In both cases, the name of the Smalltalk method is determined by following a set pattern.
+The rest of this section describes the pattern in detail, but first, here are a few examples:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Java Method</TH>
+		<TH>Generated selector</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">int size() {...}</CODE></TD>
+		<TD><CODE class="Smalltalk">#size_null</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">void shutdown() {...}</CODE></TD>
+		<TD><CODE class="Smalltalk">#shutdown_null</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">void parse(java.lang.String msg) {...}</CODE></TD>
+		<TD><CODE class="Smalltalk">#parse_String:</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">void shutdown(java.lang.String msg, boolean urgent) {...}</CODE></TD>
+		<TD><CODE class="Smalltalk">#shutdown_String:boolean:</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">boolean check(java.net.URL[] urls) {...}</CODE></TD>
+		<TD><CODE class="Smalltalk">#check_URLArray:</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+<P>
+Field access is via generated &ldquo;getter&rdquo; and &ldquo;setter&rdquo; methods:</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Java Field</TH>
+		<TH>Generated getter</TH>
+		<TH>Generated setter</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">int aField;</CODE></TD>
+		<TD><CODE class="Smalltalk">#get_aField</CODE></TD>
+		<TD><CODE class="Smalltalk">#set_aField:</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">final int aField;</CODE></TD>
+		<TD><CODE class="Smalltalk">#get_aField</CODE></TD>
+		<TD>&mdash;</TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">java.lang.String aField;</CODE></TD>
+		<TD><CODE class="Smalltalk">#get_aField</CODE></TD>
+		<TD><CODE class="Smalltalk">#set_aField:</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+<P>
+Constructors are methods on the class static, here are some examples from java.lang.String:
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>String Constructor</TH>
+		<TH>Generated selector</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><CODE class="Java">String()</CODE></TD>
+		<TD><CODE class="Smalltalk">#new_null</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">String(char ch)</CODE></TD>
+		<TD><CODE class="Smalltalk">#new_char:</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Java">String(java.lang.StringBuffer buffer)</CODE></TD>
+		<TD><CODE class="Smalltalk">#new_StringBuffer:</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+
+
+<H2>Names for Forwarding Methods</H2>
+
+<P>
+Given a Java class, each of its methods is fully identified by a combination of
+its name and its signature &mdash; the name alone is not enough (since method names
+can be overloaded).  Hence, to identify a specific method, we need:
+</P>
+<UL>
+<LI>The method's name.</LI>
+<LI>The method's return type.</LI>
+<LI>The types of all of the method's parameters, in order.</LI>
+</UL>
+
+<P>
+In practice, the method's return type can be ignored since Java does not allow overloading
+on return type (although the JVM itself <EM>does</EM>).  So, we can think of a Java method's
+&ldquo;full&rdquo; name as being somehow composed of its normal name and the types of
+any arguments.  The names of generated Smalltalk methods follow this thinking.
+</P>
+<P>
+(By the way, if you are using a version of Java that supports so-called &ldquo;generics&rdquo;
+then you will need to know that generics are invisble to the Java runtime (they are
+merely a hack implemented entirely in the Java compiler), and so they are invisible
+to JNPort too.  The types seen by the Java runtime are what determine the correct names
+to use, and they are the names of the generic types after &ldquo;erasure&rdquo;.  If you think
+that's messy or awkward, then I agree with you, but it's not <em>my</em> fault &mdash;
+Sun have done everyone a disservice by introducing the underpowered, overcomplicated,
+and largely pointless hack into the language.)
+<P>
+The general pattern is that a Java method called, say, &ldquo;aMethod()&rdquo;, with
+arguments of types &ldquo;Type1&rdquo;, &ldquo;Type2&rdquo;, and &ldquo;Type3&rdquo;,
+</P><PRE><CODE class="Java">	int aMethod(Type1 a, Type2 b, Type3 c) { ... }
+</CODE></PRE><P>
+will be represented by a Smalltalk method with selector
+<CODE class="Smalltalk">#aMethod_Type1:Type2:Type3:</CODE>.
+That is, the first keyword of the Smalltalk selector is the name of the Java method, followed
+by an underscore, '_', and then the type of the first argument.  Subsequent keywords are
+just the types of the corresponding arguments.
+</P>
+<P>
+In more detail:
+</P>
+<P>
+If the Java method is called <CODE class="Java">aMethod()</CODE>, say, then the Smalltalk
+method will be called: <CODE class="Smalltalk">#aMethod_null</CODE>.
+The '_null' is important since it prevents name
+clashes between native Smalltalk method names and generated Java methods with
+unrelated meanings.
+</P>
+<P>
+If the Java method, called 'aMethod', has one or more arguments, then the Smalltalk
+method's selector will be formed by starting with 'aMethod_' and then appending a
+segment for each of the arguments.  Each segment will be the name of that argument's
+type, simplified by following the rules below.
+</P>
+<P>
+If the type is a primitive, then the segment will just be the name of that primitive.
+Note: the case is <EM>not</EM> changed, so a Java method like:
+</P><PRE><CODE class="Java">	int multiply(int n, int m) { ... }
+</CODE></PRE><P>
+would be represented by a Smalltalk method called
+<CODE class="Smalltalk">#multiply_int:int:</CODE>.
+</P>
+<P>
+If the type is a class or interface, then the segment is the short name of that class
+or interface (i.e. not fully qualified).  E.g. a Java method like:
+</P><PRE><CODE class="Java">	void write(java.lang.String message, java.io.WriteStream out) { ... }
+</CODE></PRE><P>
+would be represented by a Smalltalk method called
+<CODE class="Smalltalk">#write_String:WriteStream:</CODE>.
+Note that, again, the case of the type name is unchanged (and so does not follow
+conventional Smalltalk rules &mdash; again, this is necessary to avoid ambiguity).
+</P>
+<P>
+If the type is an array type, then the segment is formed by appending 'Array'
+to the base-type name as many times as necessary.  E.g: a Java method like:
+</P><PRE><CODE class="Java">	void aMethod(String[] strings, boolean[][] bitmaps) { ... }
+</CODE></PRE><P>
+would be represented by a Smalltalk method called:
+<CODE class="Smalltalk">#aMethod_StringArray:booleanArrayArray:</CODE>.
+</P>
+
+
+<H2>Names for Accessor Methods</H2>
+<P>
+Access to fields of Java objects is via generated Smalltalk accessor methods.
+Given a variable called 'aField', the generated getter and setter methods in
+Smalltalk are called <CODE class="Smalltalk">#get_aField</CODE> and
+<CODE class="Smalltalk">set_aField:</CODE> respectively.  Fields declared to
+be &ldquo;final&rdquo; have no generated setter.
+</P>
+
+<H2>Names for Static Members</H2>
+<P>
+Using static members (class side fields and methods)
+follows exactly the same pattern as instance-side members.  The difference
+is that the Smalltalk methods are defined on a &ldquo;class static&rdquo; object
+that stands for the Java class.  See <A href="players.html#Class Statics">Class Statics</A>
+for more detail.
+</P>
+<P>
+It's worth mentioning that, because of this, there is never any ambiguity between
+class-side and instance-side members.
+</P>
+
+<H2>Names for Constructors</H2>
+<P>
+These are treated like static methods called &ldquo;new&rdquo;.  E.g. the
+Java constructor for a java.lang.String from an array of chars:
+</P><PRE><CODE class="Java">	String(char[] chars) { ... }
+</CODE></PRE><P>
+is represented by a method on the String class static called
+<CODE class="Smalltalk">#new_charArray</CODE>:
+</P>
+
+
+<H2>Handling Ambiguity</H2>
+<P>
+It is possible for more than one Java method to map onto the same Smalltalk selector.
+It is impossible to fix the problem in general (without making the scheme too verbose or
+complicated to use), but the most common cases can be fixed.
+</P>
+<P>
+One way ambiguity occurs is when there are two versions of a class or interface
+with the same name in different packages. If a method is overloaded to handle both
+of these cases (a not unreasonable situation) then JNIPort will try to generate
+two corresponding Smalltalk wrapper methods with the same selector. (Since the
+two argument types have the same short name).  Other ways of getting ambiguity can
+also be invented; I leave it as an exercise for the reader&hellip;
+</P>
+<P>
+If JNIPort finds that it is generating two methods with the same selector, then it
+attempts to get around the problem as follows.  Firstly it tries using the long forms
+of all the type names.  So if the Java class had two methods like:
+</P><PRE><CODE class="Java">	void aMethod(org.whatever.Something) { ... }
+	void aMethod(org.wherever.Something) { ... }
+</CODE></PRE><P>
+then JNIPort would generate a method called <CODE class="Smalltalk">#aMethod_Something:</CODE>
+that just threw an <CODE class="Smalltalk">AmbiguousJavaMethodError</CODE> exception.  It would
+also generate two real forwarding methods with names
+<CODE class="Smalltalk">#aMethod_orgwhateverSomething:</CODE> and
+<CODE class="Smalltalk">#aMethod_orgwhereverSomething:</CODE> that forwarded to the
+corresponding methods.  In this case the segment of the selector is made from the fully-qualified
+type name with any '.'s removed.
+</P>
+<P>
+If that does not resolve the ambiguity then JNIPort will generate even longer selectors
+that also include the return type of the method, so that:
+</P><PRE><CODE class="Java">	int aMethod(org.whatever.Something) { ... }
+	double aMethod(org.what.ever.Something) { ... }
+</CODE></PRE><P>
+would be wrapped as <CODE class="Smalltalk">#aMethod_int_orgwhateverSomething:</CODE>
+and <CODE class="Smalltalk">#aMethod_double_orgwhateverSomething:</CODE>.
+</P>
+<P>
+This is already getting to the point of being unusable, so if even <EM>that</EM> doesn't work
+then JNIPort just gives up.  In the current implementation, it will generate both wrapper
+methods in the longest form, and so one of them (arbitrarily chosen) will overwrite the
+other.  It would probably be better if it didn't generate either of them in this case, so the
+current behaviour should be considered to be a bug.
+</P>
+<P>
+Rather surprisingly, the JVM allows classes to have multiple fields with the same
+name, provided that they are of different declared types.  The Java compiler won't
+let you do it, but it is perfectly legal for JVM classfiles.  In this case JNIPort
+will use the same kinds of techniques as it does for avoiding ambiguous selectors
+for forwarding methods (arguably, this is overkill).  So if the Java class had fields
+like (this is not legal Java):
+</P><PRE><CODE class="Java">	int aField;
+	double aField;
+</CODE></PRE><P>
+then JNIPort will generate two getter methods with names:
+<CODE class="Smalltalk">#get_int_aField</CODE>, and
+<CODE class="Smalltalk">#get_double_aField</CODE>, and will generate a dummy getter,
+<CODE class="Smalltalk">#get_aField</CODE> that raises an
+<CODE class="Smalltalk">AmbiguousJavaMethodError</CODE> exception.  Similarly for setter
+methods if there are any.
+</P>
+<P>
+If this sort of thing happens to you in practice, then you can always fall back to
+the Java Base and write your own wrapper methods with whatever names you want.
+</P>
+
+
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

@@ -1,0 +1,795 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>Basic JNIPort</H1>
+<P>
+The basic level of JNIPort, in package 'CU Java Base', uses the raw JNI functions
+exposed via package 'CU JNI' and builds a framework for manipulating Java objects
+and classes via Smalltalk proxies.
+</P>
+<P>
+The proxies for Java objects don't have a special name in JNIPort, I tend to refer
+to them as <DFN>[instance] wrappers</DFN>, or occasionally as <DFN>proxies</DFN>.
+They are instances of subclasses of <CODE class="Smalltalk">JavaInstance</CODE>.
+</P>
+<P>
+The &ldquo;proxies&rdquo; for Java classes are called <DFN>class statics</DFN>;
+of course they aren't really proxies, in the normal sense of the word, because there
+is no object in Java that they are a proxy <EM>for</EM>.  Still, they provide an
+Facade that exposes the static members of Java classes as if they were attached to
+some object (which, in fact, they probably are &mdash; hidden away inside the Java
+runtime somewhere).  They are instances of subclasses of
+<CODE class="Smalltalk">JavaStatic</CODE>.
+</P>
+<P>
+For more information on instance wrappers and class statics, see the description
+of the main <A href="players.html">players</A> of JNIPort.
+</P>
+<P>
+For an example of using this level of JNIPort, see <A href="java-base-example-1.html">
+here
+</A>.
+</P>
+
+<HR>
+<H2><A name="JavaObject">Class <CODE class="Smalltalk">JavaObject</CODE><A></H2>
+<P>
+<IMG
+	src="java-base-JavaObject.gif"
+	alt="Class Hierarchy highlighting JavaObject">
+</P>
+<P>
+All JNIPort proxies, both for the class- and instance-sides, are subclassed
+from <CODE class="Smalltalk">JavaObject</CODE>.  This class provides a uniform
+framework for calling methods, and accessing Java fields, (collectively
+called the &ldquo;members&rdquo;) of a Java class.
+</P>
+<P>
+All these objects are owned by a single <DFN>JVM</DFN> object, which stands for the
+Java runtime.  Instances respond to the <CODE class="Smalltalk">#jvm</CODE> message
+that, unsurprisingly, answers that object.  The JVM object has some
+<A href="setup.html">configuration</A> options that determine, for instance, which
+Java runtime it will start, and what options it will pass to that runtime.  The
+JVM object's role is also described in the <A href="players.html">Players</A> section.
+</P>
+<P>
+Instances obviously depend on the Java runtime; as long as the runtime is, er, running
+they are considered to be &ldquo;live&rdquo;; after the runtime has shut down, any
+surviving instances will be &ldquo;dead&rdquo; (as will their owning JVM).  When you
+save and restart the image, the Java runtime is not restarted, and so all the
+Smalltalk objects that referred to it become dead.  The simplest way to configure and
+start/stop Java runtimes is via the GUI tool, the <A href="status-monitor.html">Status
+Monitor</A>.
+</P>
+<P>
+The remainder of this sub-section discusses the common features of all 
+<CODE class="Smalltalk">JavaObjects</CODE>.
+</P>
+
+<H3>Reading and Writing Java Fields</H3>
+<P><I>
+You can safely skip this sub-section if you are using <A href="ghost-classes.html">ghost classes</A>
+or the <A href="wrapper-wizard.html">Wrapper Wizard</A>.
+</I></P>
+<P>
+Unfortunately, due to the way that Java/JNI work, you have to use different methods to
+access a Java field depending on its type.  There are specific methods for each of Java's
+primitive types, and another for use when it holds object references.
+</P>
+<P>
+The 'Java field access' method category of <CODE class="Smalltalk">JavaObject</CODE> contains
+methods for reading or writing the value of a field that holds a primitive type.  A slew
+of &ldquo;getter&rdquo; methods like, 
+<CODE class="Smalltalk">#getBooleanField:</CODE>, <CODE class="Smalltalk">#getByteField:</CODE>,
+<CODE class="Smalltalk">#getIntField:</CODE>, and so on, read a field which holds one of
+Java's primitive types.
+Then another slew of &ldquo;setters&rdquo;, <CODE class="Smalltalk">#getBooleanField:to:</CODE>, etc,
+write to the field.
+The values are represented by the corresponding Smalltalk types
+according to the rules <A href="#Passing Primitive Types">below</A>.
+</P>
+<P>
+When you access a reference field in a Java object (or class), you must supply both the
+name of the field, and its <DFN>signature</DFN>.  The signature of a field is a string that
+describes its statically-declared type.  Signatures are described more fully 
+<A href="jni-names.html#Signatures">here</A>, but, for example, the signature of a
+field that is defined as:
+</P>
+<PRE><CODE class="Java">	String	m_String;
+</CODE></PRE>
+<P>
+is 'Ljava/lang/String;'.
+</P>
+<P>
+You can read the value of a field that holds an object reference with the
+<CODE class="Smalltalk">JavaObject>>getObjectField:signature:</CODE> method.  For instance,
+to read the <CODE class="Java">m_String</CODE> field of some object, the Smalltalk code
+would be:
+</P>
+<PRE><CODE class="Smalltalk">	aProxy
+		getObjectField: 'm_field'
+		signature: 'Ljava/lang/String;'
+</CODE></PRE>
+<P>
+The 'Java field access' method category of <CODE class="Smalltalk">JavaObject</CODE> contains
+a couple of convenience methods for use in cases where you know that the field is
+declared to hold a <CODE class="Java">java.lang.Object</CODE> or a
+<CODE class="Java">java.lang.String</CODE>.
+</P>
+<P>
+Since our field does hold a string, we could recode the example as:
+</P>
+<PRE><CODE class="Smalltalk">	aProxy getStringField: 'm_field'
+</CODE></PRE>
+<P>
+Please note that the value of either expression would be a Smalltalk object wrapping an
+instance of <CODE class="Java">java.lang.String</CODE>, <EM>not</EM> a Smalltalk
+<CODE class="Smalltalk">String</CODE>.  (You can convert it with
+<CODE class="Smalltalk">#asString</CODE>.)
+</P>
+<P>
+You can change the value of a reference field with the
+<CODE class="Smalltalk">JavaObject>>setObjectField:signature:to:</CODE> method.  For instance,
+to set the <CODE class="Java">m_String</CODE> field to some pre-existing Java string,
+the Smalltalk code would be:
+</P>
+<PRE><CODE class="Smalltalk">	aJavaString := ...
+	aProxy
+		setObjectField: 'm_field'
+		signature: 'Ljava/lang/String;'
+		to: aJavaString.
+</CODE></PRE>
+<P>
+Again, there are a few convenience methods for handling the commonest classes. In this
+case we could have written:
+</P>
+<PRE><CODE class="Smalltalk">	aJavaString := ...
+	aProxy
+		setStringField: 'm_field'
+		to: aJavaString.
+</CODE></PRE>
+<P>
+And, in fact, that particular method knows how to convert Smalltalk strings into Java
+strings, where necessary.  So we could also have written:
+</P>
+<PRE><CODE class="Smalltalk">	aProxy
+		setStringField: 'm_field'
+		to: 'JNIPort!!'.
+</CODE></PRE>
+<P>
+Other than that one automatic conversion, any the value read from, or written to, a reference
+field must either be a reference to a Java object, or must be
+<CODE class="Smalltalk">nil</CODE>, which stands for Java's <CODE class="Java">null</CODE>.
+</P>
+<P>
+A warning (or possibly it's an opportunity): since JNIPort works via JNI, the normal
+Java protection mechanisms are simply ignored.  That means that you can read/write
+&ldquo;private&ldquo; fields as easily as &ldquo;public&ldquo; ones.  You can also
+change the value of &ldquo;final&ldquo; fields.  Changing the value of a
+&ldquo;static final int&ldquo; field in an interface may seem fun, but it probably
+isn't a very good idea&hellip;
+</P>
+
+<H3>Calling Java Methods</H3>
+<P><I>
+You can safely skip this sub-section if you are using ghost classes or the Wrapper
+Wizard.
+</I></P>
+<P>
+When you call a method of a Java object (or class), you must supply both the name of the
+method, and its signature.  The signature of a method is a string that describes
+its argument types and return type. Signatures are described
+<A href="jni-names.html#Signatures">here</A>, but, for example, the signature of a
+method that is defined as:
+</P>
+<PRE><CODE class="Java">	String	toString(Double fuzz) { ... };
+</CODE></PRE>
+<P>
+is '(D)Ljava/lang/String;'.  
+</P>
+<P>
+As with reading the value of a field, there are a number of different ways
+of invoking a Java method, and which you use depends on the Java method's
+return type.  The methods are in the 'Java method calls' category of
+class <CODE class="Smalltalk">JavaObject</CODE>.  They have names,
+<CODE class="Smalltalk">#callBooleanMethod:signature:withArguments:</CODE>,
+<CODE class="Smalltalk">#callByteMethod:signature:withArguments:</CODE>, and
+so on through all the Java primitive types (including <CODE class="Java">void</CODE>),
+plus <CODE class="Smalltalk">#callObjectMethod:signature:withArguments:</CODE>,
+which is used for any method that returns an object reference.
+</P>
+<P>
+If the method takes no parameters then the signature is determined completely
+by the return type.  There are a number of convenience methods that help with
+this special case; for instance <CODE class="Smalltalk">#callByteMethod:</CODE>
+which &ldquo;knows&rdquo; that the named method takes no arguments and so that
+the signature must by '()B'.
+</P>
+<P>
+If the method does take parameters, then you must supply a signature yourself.  You
+must also build up a <CODE class="Smalltalk">JNIValueArray</CODE>
+to hold the parameters you want to pass to the call.  A <CODE class="Smalltalk">JNIValueArray</CODE>
+is an array-like object that holds a list of arguments; you create one of the appropriate
+size, and then fill in each argument with typed versions of <CODE class="Smalltalk">#at:put:</CODE>
+before passing it to the Java method. For instance, given a reference to a Java string,
+this code will invoke its <CODE class="Java">substring(int, int)</CODE> method:
+</P>
+<PRE><CODE class="Smalltalk">	jString := ...
+	args := (JNIValueArray new: 2)
+			intAt: 1 put: 5;
+			intAt: 2 put: 10;
+			yourself.
+	subString := jString
+			callObjectMethod: 'substring'
+			signature: '(II)Ljava/lang/String;'
+			withArguments: args.
+</CODE></PRE>
+<P>
+Primitive types are added to the list with <CODE class="Smalltalk">#booleanAtPut:</CODE>,
+<CODE class="Smalltalk">#byteAtPut:</CODE>, and so on.  The values are represented by the
+corresponding Smalltalk types according to the rules <A href="#Passing Primitive Types">below</A>.
+Object references are added with <CODE class="Smalltalk">#objectAtPut:</CODE>, and must either
+be a reference to a Java object, or <CODE class="Smalltalk">nil</CODE>.
+There are many examples of using <CODE class="Smalltalk">JNIValueArrays</CODE> in JNIPort, browse
+for references to the class.
+</P>
+<P>
+A warning: <CODE class="Smalltalk">JNIValueArray</CODE> is a kind of
+<CODE class="Smalltalk">ExternalStructure</CODE> and <EM>does not protect references from 
+the garbage collector</EM>.
+For instance, if you are passing a temporary Java string to a method, then you
+<STRONG>must not</STRONG> code it like this:
+</P>
+<PRE><CODE class="Smalltalk">	args := (JNIValueArray new: 1)
+			objectAt: 1 put: ('test' asJavaString: jvm);
+			yourself.
+	subString := jString
+			callObjectMethod: 'setName'
+			signature: '(Ljava/lang/String;)V'
+			withArguments: args.
+</CODE></PRE>
+<P>
+because the temporary Java string, created by <CODE class="Smalltalk">('test' asJavaString: jvm)</CODE>,
+would quite probably be garbage collected before it could be used.  You have to ensure that there
+is a separate reference to any object stored in a <CODE class="Smalltalk">JNIValueArray</CODE>.
+For instance:
+</P>
+<PRE><CODE class="Smalltalk">	tmpString := 'test' asJavaString: jvm.
+	args := (JNIValueArray new: 1)
+			objectAt: 1 put: tmpString;
+			yourself.
+	subString := jString
+			callObjectMethod: 'setName'
+			signature: '(Ljava/lang/String;)V'
+			withArguments: args.
+</CODE></PRE>
+<P>
+Another warning: JNI, and hence JNIPort, will allow you to call any method of any object
+or class, including private ones.
+</P>
+
+<H3><A name="Passing Primitive Types">Representing Primitive Types</A></H3>
+<P>
+JNIPort uses Smalltalk's own <CODE class="Smalltalk">Integers</CODE> to represent
+Java's <CODE class="Java">byte</CODE>, <CODE class="Java">short</CODE>,
+<CODE class="Java">int</CODE> and, <CODE class="Java">long</CODE> types.  Integer are
+are range-checked before being passed to Java.  Note that the range of Java's
+<CODE class="Java">byte</CODE> is -128 to +127 (however converting between a Java
+<CODE class="Java">byte[]</CODE> array and a Smalltalk <CODE class="Smalltalk">ByteArray</CODE>
+will also do a signed/unsigned conversion).
+</P>
+<P>
+JNIPort uses the Smalltalk class <CODE class="Smalltalk">Float</CODE> for Java's
+<CODE class="Java">float</CODE> and, <CODE class="Java">double</CODE> types.  The Smalltalk
+representation has the same precision as Java's <CODE class="Java">double</CODE>.
+</P>
+<P>
+JNIPort uses <CODE class="Smalltalk">true</CODE> and <CODE class="Smalltalk">false</CODE>
+for Java's <CODE class="Java">boolean</CODE> type.
+</P>
+<P>
+Representing Java's 16-bit <CODE class="Java">char</CODE> type is problematical.  In general,
+anywhere where a character is passed to Java, JNIPort will accept either a Smalltalk
+<CODE class="Smalltalk">Character</CODE> or an integer in the range 0 to 65535 (i.e. an
+unsigned  16-bit representation).  When a character is passed from Java to Smalltalk, JNIPort
+represents it as a <CODE class="Smalltalk">Character</CODE> if possible, or as an
+<CODE class="Smalltalk">Integer</CODE> if not.  This conversion is not always possible,
+so, for instance, converting a Java <CODE class="Java">java.lang.String</CODE> to a
+Smalltalk <CODE class="Smalltalk">String</CODE> will throw an exception if it contains
+any characters with code points over 255.  (Unfortunately, this applies to
+<CODE class="Smalltalk">UnicodeString</CODE> as well.)
+</P>
+<P>
+Java's <CODE class="Java">null</CODE> isn't a primitive type (in fact it's difficult to
+say just what it should be called in Java type system &mdash; it's very much a special case),
+but this is as good a place as any to mention that JNIPort always represents Java
+<CODE class="Java">null</CODE> by Smalltalk <CODE class="Smalltalk">nil</CODE>.
+</P>
+
+<H3>Introspection</H3>
+<P>
+All <CODE class="Smalltalk">JavaObjects</CODE> are able to reflect on their Java object or
+class.  They know what methods, fields, and possibly constructors, it has or inherits.
+See the methods in the category 'reflection'.  The class static for any class is able to
+provide more reflective details about its instances than they themselves can.  See the
+same category in <CODE class="Smalltalk">JavaStatic</CODE>.
+</P>
+<P>
+It may help to know that the objects that are answered by the reflection methods (wrappers
+for instances of <CODE class="Java">java.lang.reflect.Method</CODE>,
+<CODE class="Java">.Field</CODE>, and <CODE class="Java">.Constructor</CODE>) are able to
+work out their own signature string.
+The message is <CODE class="Smalltalk">#jniSignature</CODE>.
+</P>
+
+<H3>Java exceptions</H3>
+<P>
+When a Java method, or any other JNI operation, throws an exception, JNIPort catches it
+and rethrows it as a Smalltalk exception.
+</P>
+<P>
+In more detail, the Java runtime throws a Java exception, which is a Java object
+inheriting from <CODE class="Java">java.lang.lang.Throwable</CODE>.  JNIPort
+sees the exception object and wraps it in an instance wrapper as usual for
+any Java object; this will actually be a <CODE class="Smalltalk">JavaLangThrowable</CODE>.
+It then creates a new instance of <CODE class="Smalltalk">JavaException</CODE>
+(which is a non-resumable subclass of <CODE class="Smalltalk">Exception</CODE> via
+<CODE class="Smalltalk">Error</CODE>), and raises that exception with the Java
+object as its &ldquo;tag&rdquo;.
+</P>
+<P>
+That means that uncaught Java exceptions are handled, by default, in the same
+way (a walkback if it's a development session) as uncaught Smalltalk errors.
+Also they can be caught and handled by a <CODE class="Smalltalk">#on:do:</CODE>
+expression that lists any of <CODE class="Smalltalk">JavaException</CODE>,
+<CODE class="Smalltalk">Error</CODE>, or <CODE class="Smalltalk">Exception</CODE>
+in its filters.
+</P>
+<P>
+A higher degree of specificity is possible; the class
+<CODE class="Smalltalk">JavaLangThrowable</CODE> implements the
+<CODE class="Smalltalk">#,</CODE> and <CODE class="Smalltalk">#handles:</CODE>
+methods necessary to act as an exception filter too.  Therefore, if you have
+specialised subclasses that correspond to Java exception classes, then you can
+use the wrapper classes in an <CODE class="Smalltalk">#on:do:</CODE> expression.
+</P>
+<P>
+A still higher degree of specificity is also possible; the class statics themselves
+understand the filter protocol, so you can use them (the objects, not their classes)
+as filters too.
+</P>
+
+<HR>
+<H2><A name="JavaInstance">Class <CODE class="Smalltalk">JavaInstance</CODE><A></H2>
+<P>
+<IMG
+	src="java-base-JavaInstance.gif"
+	alt="Class Hierarchy highlighting JavaInstance">
+</P>
+<P>
+<CODE class="Smalltalk">JavaInstance</CODE> is one of the two immediate subclasses
+of <CODE class="Smalltalk">JavaObject</CODE> (the other is
+<CODE class="Smalltalk">JavaStatic</CODE>, which is described <A href="#JavaStatic">below</A>).
+Its instances all stand, in one way or another, for a real Java object.
+There are three significant subclasses.  The most important is
+<CODE class="Smalltalk">JavaClassInstance</CODE> whose instances wrap a JNI reference
+to a Java object, and which act as proxies for those objects.
+The other two classes, <CODE class="Smalltalk">JavaInterfaceInstance</CODE> and
+<CODE class="Smalltalk">JavaNonVirtual</CODE> take an existing
+<CODE class="Smalltalk">JavaClassInstance</CODE> and wrap it in an Adaptor that presents
+an alternative view of the underlying Java object as if it were a member of a different
+class. All three are described below.
+</P>
+<P>
+Every instance of <CODE class="Smalltalk">JavaInstance</CODE> has a (shared) class static,
+corresponding to the object's Java class.  The message <CODE class="Smalltalk">#static</CODE>
+will answer the class static.
+</P>
+<P>
+All instances understand all the methods of <CODE class="Java">java.lang.Object</CODE>,
+exposed in the normal JNIPort <A href="method-names.html">naming scheme</A>.  I.e.
+they all understand:
+</P>
+<TABLE border=0 cellspacing=10>
+<TBODY>
+	<TR>
+		<TD><CODE class="Smalltalk">#equals_Object:</CODE></TD>
+		<TD><CODE class="Smalltalk">#notify_null</CODE></TD>
+		<TD><CODE class="Smalltalk">#wait_long:</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Smalltalk">#getClass_null</CODE></TD>
+		<TD><CODE class="Smalltalk">#notifyAll_null</CODE></TD>
+		<TD><CODE class="Smalltalk">#wait_long:int:</CODE></TD>
+	</TR>
+	<TR>
+		<TD><CODE class="Smalltalk">#hashCode_null</CODE></TD>
+		<TD><CODE class="Smalltalk">#toString_null</CODE></TD>
+		<TD><CODE class="Smalltalk">#wait_null</CODE></TD>
+	</TR>
+</TBODY>
+</TABLE>
+<P>
+Additionally: 
+<CODE class="Smalltalk">#equals:</CODE>,
+<CODE class="Smalltalk">#getClass</CODE>,
+<CODE class="Smalltalk">#hashCode</CODE>, and
+<CODE class="Smalltalk">#toString</CODE>, are Smalltalk-style aliases for the corresponding
+Java methods (note that <CODE class="Smalltalk">#toString</CODE> answers a reference to a
+<EM>Java</EM> string).
+</P>
+<P>
+Smalltalk equality (<CODE class="Smalltalk">#=</CODE>, and
+<CODE class="Smalltalk">#hash</CODE>) is defined on these object so
+that it corresponds to an identity comparison of the underlying Java objects
+</P>
+
+<HR>
+<H2><A name="JavaClassInstance">Class <CODE class="Smalltalk">JavaClassInstance</CODE><A></H2>
+<P>
+<IMG
+	src="java-base-JavaClassInstance.gif"
+	alt="Class Hierarchy highlighting JavaClassInstance">
+</P>
+<P>
+These objects wrap raw JNI references, manage their lifetimes, and act as proxies
+for the underlying Java object. They are, with class statics and the JVM object,
+the most important objects in the JNIPort system.
+</P>
+<P>
+This class establishes a framework for such proxies.  It has arbitrarily many subclasses (especially
+if ghost classes are turned on!) that are used to wrap instances of specific Java classes.  Often,
+such custom wrapper classes would be derived from <CODE class="Smalltalk">JavaLangObject</CODE>,
+since all Java classes inherit from <CODE class="Java">java.lang.Object</CODE>, but that is
+not a requirement.
+<P>
+JNIPort provides a way for subclasses to declare that they correspond to some specific
+Java class (it is actually the <CODE class="Smalltalk">#javaClassName</CODE> method
+on the class-side, see the section on <A href="wrapper-classes.html">wrapper classes</A>
+for more details).  When JNIPort encounters a reference to a Java object of the corresponding
+class (or a subclass) it creates a proxy of the designated Smalltalk class.
+The idea is that the custom wrapper class will define helper methods that hide the need to
+send messages like <CODE class="Smalltalk">#callObjectMethod:signature:withArguments:</CODE>
+as described above.  You can create these wrapper classes by hand, but that quickly becomes
+tedious, so the higher level of JNIPort provides two ways of automating the process.  The
+<A href="wrapper-wizard.html">Wrapper Wizard</A>, writes forwarding methods for you, and
+<A href="ghost-classes.html">ghost classes</A> take the idea further and makes the process
+entirely dynamic and automatic.
+</P>
+<H4><A name="Canonical References">Canonical References</A></H4>
+<P>
+In normal operation, JNIPort creates a new <CODE class="Smalltalk">JavaClassInstance</CODE>
+whenever it encounters a new JNI reference to the underlying Java object.  That is, more than one
+instance may be acting as a proxy for the same Java object.  Under most circumstances that works
+perfectly well, but sometime it may be necessary to ensure that a Java object is always represented by
+one specific proxy.  This may be important, for instance, if the wrapper class adds per-instance
+state, or simply to allow fast comparisons using <CODE class="Smalltalk">#==</CODE>).  For this
+reason, JNIPort provides the notion of a <DFN>canonical</DFN> proxy.  If an instance has been told
+to <CODE class="Smalltalk">#beCanonical</CODE> then JNIPort will ensure that any subsequent
+references to the Java object will be represented by that specific instance.  This is implemented
+using a weak set held by each class static; see the <A href="players.html#Instance Lifecycle">object
+lifecycle</A> for more information.  This feature can be turned on on a per-class basis as well,
+see <CODE class="Smalltalk">JavaClassStatic>>haveCanonicalInstances</CODE>, 
+<CODE class="Smalltalk">JavaClassStatic>>haveCanonicalInstancesByDefault</CODE>, and
+<CODE class="Smalltalk">JavaClassInstance class>>haveCanonicalInstancesByDefault</CODE>.
+</P>
+<H4>Strings and Arrays</H4>
+<P>
+JNIPort comes with some standard classes for wrapping Java strings and arrays.  These are
+all subclassed from <CODE class="Smalltalk">JavaAggregate</CODE>.  Which, incidentally, is
+an example of the way that the hierarchy of wrapper classes does not need to follow the
+Java hierarchy, if there is some useful commonality that can be exploited.  In this case
+the commonality is that they share code to give them a Smalltalk-style interface.
+For instance, all Java arrays and strings are wrapped in objects that understand
+the <CODE class="Smalltalk">#at:</CODE> message (which takes a 1-based index).
+Arrays also understand <CODE class="Smalltalk">#at:put:</CODE>, strings don't because
+Java's strings are immutable.  They also understand the basics of the Collections
+protocols, such as <CODE class="Smalltalk">#do:</CODE> and <CODE class="Smalltalk">#size</CODE>.
+</P>
+<P>
+There are various ways of creating arrays; you can use the class-side
+<CODE class="Smalltalk">#new:jvm:</CODE> of the corresponding wrapper class, or you
+can send <CODE class="Smalltalk">#newArray:</CODE> to the class static.  For instance
+this code creates an array of 9 <CODE class="Java">doubles</CODE> and 10
+<CODE class="Java">java.lang.Strings</CODE>:
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+	doubleArray := JavaDoubleArray new: 9 jvm: jvm.
+	stringClass := jvm findClass: #'java.lang.String'.
+	stringArray := stringClass newArray: 10.
+</CODE></PRE>
+<P>
+There are also several ways of creating Java strings.  The easiest is to send
+<CODE class="Smalltalk">#asJavaString:</CODE> to a Smalltalk string:
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+	javaString := 'Test!' asJavaString: jvm.
+</CODE></PRE>
+<P>
+You can convert Java arrays into Smalltalk arrays with <CODE class="Smalltalk">#asArray</CODE>,
+and Java strings into Smalltalk strings with <CODE class="Smalltalk">#asString</CODE>.
+Note, however, that not all Java strings can be represented in Dolphin Smalltalk since
+Dolphin does not yet support 16-bit characters.
+</P>
+<P>
+Java <CODE class="Java">byte[]</CODE> arrays and Smalltalk
+<CODE class="Smalltalk">ByteArrays</CODE> can be converted into each other with
+<CODE class="Smalltalk">#asByteArray</CODE> and
+<CODE class="Smalltalk">#asJavaByteArray:</CODE>
+respectively.  The conversion also maps between Smalltalk's unsigned bytes and
+Java's signed ones.
+</P>
+
+<HR>
+<H2><A name="JavaInterface Instances">Class <CODE class="Smalltalk">JavaInterfaceInstance</CODE><A></H2>
+<P>
+<IMG
+	src="java-base-JavaInterfaceInstance.gif"
+	alt="Class Hierarchy highlighting JavaInterfaceInstance">
+</P>
+<P>
+The second subclass of <CODE class="Smalltalk">JavaInstance</CODE> can be used to represent
+Java objects that are known to implement some interface.
+</P>
+<P>
+Java makes heavy use of interfaces; they are one of Java's best features, but they do
+cause a problem for wrapper classes.  For instance, the Java interface 
+<CODE class="Java">java.util.Iterator</CODE> defines two useful methods for looping
+over Java collections, but there are many Java classes which implement
+the interface and they are not related by inheritance.  The problem is that, while it is
+easy to generate a wrapper for any one of those classes, you wouldn't want to have to
+duplicate the wrapper code for all the rest of them.
+</P>
+<P>
+There are several workable solutions to the problem; JNIPort has one built in &mdash;
+<DFN>interface instances</DFN>.  Roughly, the idea is that, just as for instance wrappers, you
+tell JNIPort that a certain wrapper class should be used for Java objects that implement a
+certain interface.  It will then arrange to wrap those objects in instances of your class.
+However, the picture is different in one important aspect: JNIPort <EM>always</EM> wraps
+a reference to a Java object in the proxy class that is most appropriate given the
+Java object's class; it can't do that with interfaces.  A Java object has exactly one class,
+but may implement several interfaces, so JNIPort can't follow the usual pattern in this case.
+The way that this is handled is that interface instances are more like Adaptors; they take
+an existing wrapper object (with its own class static and so on), and put it inside
+<EM>another</EM> object, with a different class static, that &ldquo;knows&rdquo; about
+the interface and how to invoke its methods.
+</P>
+<P>
+These secondary wrapper objects are created by sending
+<CODE class="Smalltalk">asInstanceOf:</CODE> to an existing wrapper, where the parameter
+is the class static of the interface you are interested in.  Alternatively the
+<CODE class="Smalltalk">asA:</CODE> method takes the Symbol name of the interface.
+</P>
+<P>
+For instance, if you have a reference to a Java object that you know implements
+<CODE class="Java">java.util.Iterator</CODE>, but which doesn't have a special wrapper
+class of its own.  Because it doesn't have a custom wrapper class, the instance
+will be wrapped in the fallback <CODE class="Smalltalk">JavaLangObject</CODE>,
+and not know anything about the methods of <CODE class="Java">Iterator</CODE>.
+You can send <CODE class="Smalltalk">asA: #'java.util.Iterator'</CODE> to it
+to get back an adaptor that not only understands <CODE class="Smalltalk">#hasNext</CODE>
+and <CODE class="Smalltalk">#next</CODE>, but is able to understand
+<CODE class="Smalltalk">#do:</CODE>.  (This example requires the 'CU Java Additional
+Wrappers' package.)
+</P>
+
+<HR>
+<H2><A name="JavaNonVirtual">Class <CODE class="Smalltalk">JavaNonVirtual</CODE><A></H2>
+<P>
+<IMG
+	src="java-base-JavaNonVirtual.gif"
+	alt="Class Hierarchy highlighting JavaNonVirtual">
+</P>
+<P>
+The last useful subclass of <CODE class="Smalltalk">JavaInstance</CODE> is of minor importance,
+indeed it is more than slightly esoteric.  It wouldn't exist at all except that it falls, almost
+for nothing, out of the implementation, and provides a way of exposing one of JNI's features
+that otherwise would have been hidden.
+</P>
+<P>
+A <CODE class="Smalltalk">JavaNonVirtual</CODE> is an object that pairs a class static with
+an instance wrapper.  It acts as if the underlying object were an instance of the Java class
+corresponding to the class static, but it bypasses Java's virtual method invocation.
+</P>
+<P>
+For example, sending <CODE class="Smalltalk">#super</CODE> to any instance proxy will
+answer a <CODE class="Smalltalk">JavaNonVirtual</CODE> that pretends that the underlying
+Java object is really an instance of its superclass.  Given a Java Point object, calling its
+<CODE class="Java">toString()</CODE> method will answer a Java string describing the point:
+</P>
+<PRE><CODE class="Smalltalk">	class := JVM current findClass: #'java.awt.Point'.
+	point := class new.
+	point toString.
+		"--> a JavaLangString(java.awt.Point[x=0,y=0])"
+</CODE></PRE>
+<P>
+but sending <CODE class="Smalltalk">#super</CODE> to it will answer a different view of
+the same object that does not override the implementation of
+<CODE class="Java">toString()</CODE> that it inherits from
+<CODE class="Java">java.lang.Object</CODE>:
+</P>
+<PRE><CODE class="Smalltalk">	point super toString.
+		"--> a JavaLangString(java.awt.Point@0)"
+</CODE></PRE>
+<P>
+Please note the non-virtual object will not be a member of any of the wrapper classes
+so, except for the methods of <CODE class="Java">java.lang.Object</CODE>,  it can only
+be accessed using the low-level methods of <CODE class="Smalltalk">JavaObject</CODE>.
+</P>
+
+<HR>
+<H2><A name="JavaPrimitiveInstance">Class <CODE class="Smalltalk">JavaPrimitiveInstance</CODE><A></H2>
+<P>
+<IMG
+	src="java-base-JavaPrimitiveInstance.gif"
+	alt="Class Hierarchy highlighting JavaPrimitiveInstance">
+</P>
+<P>
+The final subclass of <CODE class="Smalltalk">JavaInstance</CODE> is used internally
+by JNIPort. No instances of <CODE class="Smalltalk">JavaPrimitiveInstance</CODE>
+are ever created.
+</P>
+
+
+<HR>
+<H2><A name="JavaStatic">Class <CODE class="Smalltalk">JavaStatic</CODE><A></H2>
+<P>
+<IMG
+	src="java-base-JavaStatic.gif"
+	alt="Class Hierarchy highlighting JavaStatic">
+</P>
+<P>
+<CODE class="Smalltalk">JavaStatic</CODE> is second of the two immediate subclasses
+of <CODE class="Smalltalk">JavaObject</CODE>; its instances stand for Java classes and
+interfaces. They are known as <DFN>class statics</DFN>.
+</P>
+<P>
+Class statics provide access to the &ldquo;static members&rdquo; of a Java class
+in the same way that instance wrappers provide access to the non-static members.
+They also provide a way to call the constructors of a Java class.
+</P>
+<P>
+There are subclasses of <CODE class="Smalltalk">JavaStatic</CODE> that correspond
+to Java classes, interfaces, and primitive types.  Although this breakdown resembles
+that below <CODE class="Smalltalk">JavaInstance</CODE>, the parallel is misleading.
+The subclasses of <CODE class="Smalltalk">JavaInstance</CODE> are fundamentally different
+things with different roles, whereas the subclasses of
+<CODE class="Smalltalk">JavaStatic</CODE> are all very similar.  In fact the breakdown
+is more to allow JNIPort to substitute polymorphism for runtime tests, than it is to
+reflect real semantic differences.  One exception is that only the subclass
+<CODE class="Smalltalk">JavaClassStatic</CODE> defines the methods
+for calling Java constructors (since you cannot instantiate interfaces or primitive
+types).
+</P>
+<P>
+Instances are always paired with a <CODE class="Java">java.lang.Class</CODE> object
+for that class or type.  The class object has a JNIPort wrapper in the normal way,
+actually an instance of <CODE class="Smalltalk">JavaLangClass</CODE>.  The class <EM>object</EM>
+exposes the fixed set of 30 (or more) methods that all instances of
+<CODE class="Java">java.lang.Class</CODE> understand.  The class <EM>static</EM> understands
+the programmer-defined fields and methods of the Java class.  Class objects know what class
+static they are paired with (and answer it to <CODE class="Smalltalk">#classStatic</CODE>);
+class statics know what class object they are paired with (and answer it to
+<CODE class="Smalltalk">#classObject</CODE>).
+</P>
+<P>
+Each instance wrapper knows that it &ldquo;belongs to&rdquo; the class static that
+stands for its Java class.  The message <CODE class="Smalltalk">#static</CODE> will
+answer the owner.
+</P>
+<P>
+The other common way to find a class static is to look it up by name; the JVM object
+understands <CODE class="Smalltalk">#findClass:</CODE>, which takes the Symbol
+name of a Java class, interface, or type, and answers the corresponding class static.
+For instance:
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+	jvm findClass: #'java.awt.Point'.
+	jvm findClass: #'int'.
+	jvm findClass: #'java.lang.String[]'.
+	jvm findClass: #'double[][]'.
+</CODE></PRE>
+<!-- UPDATEME -->
+<P>
+(Class statics can also be obtained by asking other
+<code class="Smalltalk">&lt;javaClassFinder&gt;</code>s, such as the new &ldquo;supplementary
+classloaders&rdquo;, but that feature is still experimental, and is not discussed further here.)
+</P>
+<P>
+Class statics know how to wrap JNI references in proxies of the correct class (this
+is their most important role in the <EM>implementation</EM> of JNIPort).  They work
+with the class registry to maintain the mapping from Java classes to Smalltalk
+wrapper classes, See the <A href="players.html">Players</A> section for more detail
+on this.
+</P>
+<P>
+Class statics know about their place in the Java class hierarchy.  There are a number
+of methods in the category 'Java class hierarchy' that provide access to this;
+<CODE class="Smalltalk">#javaSuperclass</CODE> is the most basic.  Note that you can
+only ask for the <EM>known</EM> subclasses, neither JNIPort nor the Java runtime itself
+can possibly determine how many more subclasses may later be loaded (or even created).
+</P>
+<P>
+Class statics also know how to create Java arrays of the right type to hold values
+of their Java class.  For instance the class static for Java's <CODE class="Java">int</CODE>
+primitive type knows how to create <CODE class="Java">int[]</CODE> arrays:
+</P>
+<PRE><CODE class="Smalltalk">	jvm := JVM current.
+	intClass := jvm findClass: #'int'.
+	array := intClass newArray: 10.
+	     "or"
+	array := intClass newArrayWithAll: #( 1 2 3 4).
+</CODE></PRE>
+<P>
+See the methods in category 'arrays' for more ways to create arrays.
+</P>
+<P>
+The subclass <CODE class="Smalltalk">JavaClassStatic</CODE> has methods for invoking
+the Java class's constructors.  The are in category 'instance creation'.  Calling
+a constructor is like calling a Java method, except that there is no method name.  You
+have to supply a signature string and a <CODE class="Smalltalk">JNIValueArray</CODE> to
+hold any parameters.
+</P>
+<P>
+<CODE class="Smalltalk">JavaStatic</CODE> is intended to be a superclass for custom
+subclasses that wrap the class-side of a Java class, in very much the same way that
+custom subclasses of <CODE class="Smalltalk">JavaInstance</CODE> wrap the instance-side.
+JNIPort uses the same kind of mechanism for associating a custom subclass with
+some specific Java class (and its subclasses).  Similarly the Wrapper Wizard
+and ghost classes provide ways of automating the process.  See the <A href="wrapper-classes.html">
+Wrapper Classes</A> section for more detail.  JNIPort has many examples of this.
+</P>
+
+
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

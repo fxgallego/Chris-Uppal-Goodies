@@ -1,0 +1,290 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>JNIPort for Dolphin Smalltalk</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, Java and Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#F0FFFF">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="aqua">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>JNIPort for Dolphin Smalltalk</H1>
+	</TD>
+</TR>
+<TR>
+	<TD width=150 valign=top bgcolor="#F0FFFF">
+		<P><A href="overview.html">Overview</A></P>
+		<P><A href="index.html">Contents</A></P>
+		<P><A href="players.html">Players</A></P>
+		<P><A href="layers.html">Layers</A></P>
+		<P><A href="examples.html">Examples</A></P>
+		<P><A href="setup.html">Configuration</A></P>
+		<P><A href="infaq.html">InFAQ</A></P>
+		<P><A href="changes.html">Changes</A></P>
+		<P><A href="../TermsOfUse.html">Licence</A></P>
+		<hr>
+		<P>Back to <A href="../index.html">Goodies</A></P>
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<H1>JNIPort Documentation</H1>
+<P>
+This page is just an index of all the JNIPort documentation.
+The order is arbitrary; someday I may impose some more useful structure on the list, but not
+today&hellip;
+</P>
+<P>
+None of this documentation is detailed or definitive; it is just a collection
+of introductions, examples, and overviews of the bits of JNIPort.  As always with
+Smalltalk, you are invited to read the code (liberally commented &mdash; mostly &mdash;
+in open defiance of the current fad) for the details and the complete story.
+</P>
+<TABLE border=0 cellspacing=10 cellpadding=0>
+<THEAD>
+	<TR>
+		<TH>Page</TH>
+		<TH>Description</TH>
+	</TR>
+</THEAD>
+<TBODY>
+	<TR>
+		<TD><A href="additional-wrappers.html">Additional Wrapper Classes</A></TD>
+		<TD>
+		A quick survey of the extra wrapper classes provided in the
+		'CU Java Additional Wrappers' package.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="callbacks.html">Calling from Java into Smalltalk</A></TD>
+		<TD>
+		Description of JNIPort's facility for allowing Java to call back
+		into Smalltalk.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="callback-example-1.html">An Example of Using Callbacks</A></TD>
+		<TD>
+		This section is an example of using callbacks from Java into Smalltalk.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="examples.html">Examples</A></TD>
+		<TD>
+		A summary of the examples included in this documentation.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="ghost-classes.html">Ghost Classes</A></TD>
+		<TD>
+		Ghost classes are light-weight wrapper classes that are generated on
+		demand, and then discarded when the Java runtime shuts down.
+		</TD>
+	</TR>
+	<TR>
+		<TD>Documentation</TD>
+		<TD>This page!</TD>
+	</TR>
+	<TR>
+		<TD><A href="infaq.html">Infrequently Asked Questions</A></TD>
+		<TD>
+		A miscellany of observations and explanations that don't
+		seem to fit anywhere else.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="java-base-example-1.html">Example of Basic JNIPort</A></TD>
+		<TD>
+		An example of using the lower-level facilities of Java Base to read a
+		file from a ZIP archive.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="java-base.html">Basic JNIPort</A></TD>
+		<TD>
+		Discusses the fundamental concepts of JNIPort, which are implemented
+		in package 'CU Java Base'.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="jni-helper.html">The JNIHelper DLL</A></TD>
+		<TD>
+		An external DLL that helps circumvent problems caused by
+		the use of native threads in the Java runtime.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="jni-names.html">Type Names and Signatures</A></TD>
+		<TD>
+		A description of the names used by low-level JNI and the JVM
+		for types, methods, and fields.  Not relevant if you are
+		using the high level wrappers.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="jni.html">The Java Native Interface (JNI)</A></TD>
+		<TD>
+		The lowest level of JNIPort which wraps, but does not embellish,
+		the raw JNI APIs.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="jvms.html">JVMs</A></TD>
+		<TD>
+		Notes on which Java runtimes JNIPort has been tested with, and
+		any JVM-specific problems.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="layers.html">Layers</A></TD>
+		<TD>
+		A description of JNIPort in terms of the layers of software, with brief
+		introductions to the function of each component.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="method-names.html">Names of Generated Wrapper Methods</A></TD>
+		<TD>
+		The wrapper generator uses a fixed naming convention for the methods
+		it generates; this section describes the convention.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="overview.html">Overview</A></TD>
+		<TD>
+		An overview of JNIPort, including a very simple example.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="players.html">Players</A></TD>
+		<TD>
+		Introduces the main players in the community of JNIPort objects and
+		tries to explain something of how they interact.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="problems.html">Problems and Limitations</A></TD>
+		<TD>
+		Notes on what I see as the weaknesses of JNIPort.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="setup.html">Configuring JNIPort</A></TD>
+		<TD>
+		An over-brief description of the configuration options for JNIPort.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="status-monitor.html">The Status Monitor</A></TD>
+		<TD>
+		A GUI tool for displaying the status and activity of the Java runtime
+		and JNIPort.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="status-monitor-status.html">The Status Monitor's Status Page</A></TD>
+		<TD>
+		A plug-in page for the Status Monitor that shows statistics about JNIPort.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="status-monitor-classes.html">The Status Monitor's Classes Page</A></TD>
+		<TD>
+		A plug-in page for the Status Monitor that shows information about the
+		Java classes that JNIPort has loaded.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="status-monitor-history.html">The Status Monitor's History Page</A></TD>
+		<TD>
+		A plug-in page for the Status Monitor that displays a histogram of
+		JNIPort activity.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="status-monitor-console.html">The Status Monitor's Console Page</A></TD>
+		<TD>
+		A plug-in page for the Status Monitor that displays whatever text is
+		sent to the Java console streams.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="status-monitor-debug.html">The Status Monitor's JVM Debug Page</A></TD>
+		<TD>
+		A plug-in page for the Status Monitor that displays a trace of any
+		debugging output from the Java runtime
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="threading.html">The Problems with Threads</A></TD>
+		<TD>
+		The problems caused by the mismatch between the ways that
+		the Java runtime and Dolphin use operating system threads
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="walkthrough.html">A Walkthrough with JNIPort</A></TD>
+		<TD>
+		A walkthrough of installing JNIPort and setting up couple of simple
+		configurations.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="wrapper-classes.html">Static Wrapper Classes</A></TD>
+		<TD>
+		A short description of how to use custom wrapper classes.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="wrapper-example-1.html">Wrapper-class Example</A></TD>
+		<TD>
+		An example of using ghost classes, or the statically-generated
+		wrapper classes, to read a file from a ZIP archive.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="wrapper-example-2.html">Ghost Class Example</A></TD>
+		<TD>
+		An example of using ghost classes to create and display a Swing window.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="wrapper-wizard.html">The Wrapper Wizard</A></TD>
+		<TD>
+		The Wrapper Wizard is a GUI tool to help create wrapper classes.
+		</TD>
+	</TR>
+	<TR>
+		<TD><A href="changes.html">Change History</A></TD>
+		<TD>
+		A probably incomplete list of changes to the code.
+		</TD>
+	</TR>
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	-->
+</TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+<P><SMALL>
+Java, JNI (probably), JVM (possibly), and God knows what else, are trademarks of
+Sun Microsystems, Inc.
+</SMALL></P>
+</BODY>

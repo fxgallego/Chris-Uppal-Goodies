@@ -1,0 +1,575 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
+        "http://www.w3.org/TR/REC-html40/loose.dtd">
+
+<!--	Copyright (c) Chris Uppal, 2003-2005	-->
+
+<HTML>
+<HEAD>
+<TITLE>History of Changes</TITLE>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Author" CONTENT="Chris Uppal">
+<META name="keywords" content="Smalltalk, Dolphin Smalltalk, goodies for Dolphin Smalltalk">
+</HEAD>
+
+<BODY>
+<TABLE cellpadding=5 cellspacing=0 width="100%">
+<TBODY>
+<TR align=center valign=middle bgcolor="#FFFFA0">
+        <TD>
+		<TABLE border=5 cellspacing=3 cellpadding=3 bgcolor="white"><TBODY><TR>
+			<TD align="center" valign="middle" bgcolor="FF40A0">
+				<H2><A href="http://www.metagnostic.org/">Metagnostic<BR>home</A></H2>
+			</TD>
+		</TR></TBODY></TABLE>
+	</TD>
+        <TD align="center" valign="middle">
+		<H1>History of Changes</H1>
+	</TD>
+</TR>
+<TR>
+	<TD  width=150 valign=top bgcolor="#FFFFA0">
+		<P><A href="index.html">Goodies</A></P>
+		<P><A href="JNIPort.html">JNIPort</A></P>
+		<P><A href="ZKit.html">Z-Kit</A></P>
+		<P><A href="ListTree.html">ListTree</A></P>
+		<P><A href="SpaceBreakdown.html">Space Breakdown</A></P>
+		<P><A href="FMB.html">F.M.B.</A></P>
+		<P><A href="Ghoul.html">Ghoul</A></P>
+		<P><A href="Miscellanea.html">Miscellanea</A></P>
+		<P><A href="Experiments.html">Experiments</A></P>
+		<P><strong>Changes</strong></P>
+		<P><A href="Prerequisites.html">Prerequisites</A></P>
+		<P><A href="TermsOfUse.html">Licence</A></P>
+
+	</TD>
+<TD valign=top>
+<!--	real-text-starts-here	-->
+<P>
+Please note that this list doesn't include changes to <A href="JNIPort.html">JNIPort</A>,
+which has its own change list <A href="JNIPort/changes.html">here</A>.
+</P>
+<TABLE border=1 cellspacing=1 cellpadding=3>
+<THEAD>
+	<TR>
+		<TH>Date</TH>
+		<TH>Change</TH>
+		<TH>Package</TH>
+		<TH>Version</TH>
+	</TR>
+</THEAD>
+<TBODY>
+
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=4>2005-10-07</TD>
+		<TD>
+			Added a new variant of
+			<code class="Smallalk">PackageRelativeFileLocator</code>
+			in <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>Package-relative File Locator.pac</TD>
+		<TD>3</TD>
+	<TR>
+		<TD rowspan=3>
+			Very minor changes to several package to use the new
+			<code class="Smallalk">PackageResourceLocator</code>.
+		</TD>
+		<TD>CU ListTree.pac</TD>
+		<TD>9</TD>
+	</TR>
+	<TR>
+		<TD>CU Ghoul.pac</TD>
+		<TD>4</TD>
+	</TR>
+	<TR>
+		<TD>CU Filtering Method Browser.pac</TD>
+		<TD>9</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=3>2005-09-14</TD>
+		<TD rowspan=3>
+		Added ability to read and write UNIX tar files to
+		<A href="ZKit.html">Z-Kit</A>.
+		</TD>
+		<TD>CU TarFiles.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU TarFile Tree Model.pac</TD>
+		<TD>1</TD>
+	<TR>
+		<TD>CU TarFile Tests.pac</TD>
+		<TD>1</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=3>2005-08-04</TD>
+		<TD rowspan=3>
+		Minor changes to <A href="ZKit.html">Z-Kit</A>, including
+		new names for the instance creation methods, and <strong>
+		a small but incompatible change</strong> to the behaviour
+		of <code class="Smallalk">#withReaderDo:</code> and its
+		kin.  Also minor changes to the [de]compressing Streams.
+		See the package comments for details.
+		</TD>
+		<TD>CU ZipFiles.pac</TD>
+		<TD>3</TD>
+	</TR>
+	<TR>
+		<TD>CU ZLib Streams.pac</TD>
+		<TD>2</TD>
+	<TR>
+		<TD>CU BZip2 Streams.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=2>2005-04-19</TD>
+		<TD rowspan=2>
+		Added a few more methods to 'CU Stream Extensions' (mostly
+		for reading/writing data in network byte order) and made
+		parallel additions to 'CU Abstract Collections'.
+		Both in <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>CU Stream Extensions.pac</TD>
+		<TD>2</TD>
+	</TR>
+	<TR>
+		<TD>CU Abstract Collections.pac</TD>
+		<TD>4</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=3>2005-01-26</TD>
+		<TD rowspan=3>A few <em>really</em> trivial changes.</TD>
+		<TD>CU Rolling Accumulator.pac</TD>
+		<TD>2</TD>
+	</TR>
+	<TR>
+		<TD>CU List Tree.pac</TD>
+		<TD>8</TD>
+	</TR>
+	<TR>
+		<TD>CU Editable List Tree.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=2>2005-01-25</TD>
+		<TD>Several enhancements to <A href="Ghoul.html">Ghoul</A></TD>
+		<TD>CU Ghoul.pac</TD>
+		<TD>3</TD>
+	</TR>
+	<TR>
+		<TD>
+			<A href="SpaceBreakdown.html">Space Breakdown</A> can now
+			launch the RB's &ldquo;Reference Finder&rdquo; tool directly.
+		</TD>
+		<TD>CU SpaceBreakdown.pac</TD>
+		<TD>3</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=2>2005-01-17</TD>
+		<TD rowspan=2>
+			Added a <code class="Smallalk">#printString:</code>
+			to <code class="Smallalk">Always</code>
+			and <code class="Smallalk">PackageRelativeFileLocator</code>
+			in <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>CU Always.pac</TD>
+		<TD>3</TD>
+	</TR>
+	<TR>
+		<TD>Package-relative File Locator.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=3>2005-01-12</TD>
+		<TD>
+			Added a new page, <A href="Experiments.html">Experiments</A>,
+			which has some of the stuff I've been playing with, but
+			haven't finished or don't really take seriously (or both).
+		</TD>
+		<TD>&ndash;</TD>
+		<TD>&ndash;</TD>
+	</TR>
+	<TR>
+		<TD rowspan=2>
+			Added new 'Object Methods' package, and
+			a sensible <code class="Smallalk">SortBlock>>printString:</code>
+			method.
+			Both in <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>CU Object Methods.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU Sort Blocks.pac</TD>
+		<TD>3</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=6>2004-09-17</TD>
+		<TD>Added a new tool: <A href="Ghoul.html">Ghoul</A></TD>
+		<TD>CU Ghoul.pac</TD>
+		<TD>2</TD>
+	</TR>
+	<TR>
+		<TD rowspan=3>
+			Added two new packages for doing BZip2-based compression to
+			<A href="ZKit.html">Z-Kit</A>.
+			Also fixed a silly bug in ZipFileEntry>>withBinaryReaderDo:
+		</TD>
+		<TD>CU BZip2 Base.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU BZip2 Streams.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU ZLib Streams.pac</TD>
+		<TD>2</TD>
+	</TR>
+	<TR>
+		<TD rowspan=2>
+			Upgraded two more tiny packages from &ldquo;unpublished&rdquo;
+			and added them to <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>CU Windows Shell Extensions.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU Stream Extensions.pac</TD>
+		<TD>1</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2004-09-16</TD>
+		<TD>
+			Updated Abstract Collections (in <A href="Miscellanea.html">Miscellanea</A>)
+			to reflect better implementation of SequencedStream>>nextLine
+		</TD>
+		<TD>CU Abstract Collections.pac</TD>
+		<TD>3</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2004-06-08</TD>
+		<TD>
+			Added new page for <A href="ZKit.html">Z-Kit</A>. Z-Kit is
+			a collection of packages for handling data compressed with zlib.
+			It includes reading and writing ZIP files, and read- and
+			write- streams for compression and decompression.
+		</TD>
+		<TD>&ndash;</TD>
+		<TD>&ndash;</TD>
+	</TR>
+	<TR>
+		<TD rowspan=2>2004-05-14</TD>
+		<TD rowspan=2>
+			Added new flavour of ListTreeView that supports in-place
+			editing.  Also minor bugfixes and enhancements to
+			<A href="ListTree.html">List Tree</A> itself.
+		</TD>
+		<TD>CU ListTree.pac</TD>
+		<TD>7</TD>
+	<TR>
+		<TD>CU Editable ListTree.pac</TD>
+		<TD>1</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2004-05-08</TD>
+		<TD colspan=3>
+			From this point, all packages are saved out from Dolphin 5.1.4.
+			Patch-level 4 introduced base64 encoding of View resources,
+			which (although a good idea in itself) is not backward-compatable
+			with unpatched installations of Dolphin.
+		</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=2>2004-02-08</TD>
+		<TD rowspan=2>
+			Added new 'Null Streams' package, and made a very minor
+			addition (<code class="Smallalk">#empty</code>) to
+			the little 'Always' package.
+			Both in <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>CU Always.pac</TD>
+		<TD>2</TD>
+	</TR>
+	<TR>
+		<TD>CU Null Streams.pac</TD>
+		<TD>1</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2004-01-20</TD>
+		<TD>
+			<A href="SpaceBreakdown.html">Space Breakdown</A> now shows counts of
+			finalisable instances too, and can store data to file so as to do
+			before/after comparisons.
+		</TD>
+		<TD>CU SpaceBreakdown.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2003-11-14</TD>
+		<TD>
+		Updated 'Binary Arrays', following D5.1 pl2.
+		In <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>CU Binary Arrays.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2003-11-01</TD>
+		<TD>
+			Tweaked icon column width in <A href="FMB.html">F.M.B.</A> to
+			display better under Windows XP.
+		</TD>
+		<TD>CU Filtering Method Browser.pac</TD>
+		<TD>8</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2003-10-31</TD>
+		<TD>Fixed silly bug in 'Varargs' in <A href="Miscellanea.html">Miscellanea</A>.</TD>
+		<TD>CU Varargs.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=2>2003-06-18</TD>
+		<TD>Bugfix and small enhancement to <A href="ListTree.html">List Tree</A></TD>
+		<TD>CU ListTree.pac</TD>
+		<TD>6</TD>
+	</TR>
+	<TR>
+		<TD>
+			Fixed a missed case in updates to the <A href="FMB.html">F.M.B.</A>
+			for Dolphin 5.1.
+		</TD>
+		<TD>CU Filtering Method Browser.pac</TD>
+		<TD>7</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=7>2003-04-29</TD>
+		<TD>
+			Removed loose definition of
+			<code class="Smalltalk">Symbol&gt;&gt;value:</code>
+			which had been included by mistake.
+		</TD>
+		<TD>CU Sort Blocks.pac</TD>
+		<TD>2</TD>
+	</TR>
+	<TR>
+		<TD rowspan=6>
+			Upgraded six more small packages from &ldquo;unpublished&rdquo;
+			and added them to <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>CU Hashed Pair.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU Storage Size.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU String Extensions.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU Anonymous Subclass.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU Ghost Classes.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU Binary Arrays.pac</TD>
+		<TD>1</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2003-04-25</TD>
+		<TD>
+			Update to the <A href="FMB.html">F.M.B.</A> which had been slightly
+			broken by Dolphin 5.1.
+		</TD>
+		<TD>CU Filtering Method Browser.pac</TD>
+		<TD>6</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2003-04-23</TD>
+		<TD>
+			Updated Abstract Collections (in <A href="Miscellanea.html">Miscellanea</A>)
+			to reflect the new implementation of *Stream>>nextWord in Dolphin 5.1
+		</TD>
+		<TD>CU Abstract Collections.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=6>2003-03-25</TD>
+		<TD>Cosmetic enhancements to <A href="ListTree.html">List Tree</A></TD>
+		<TD>CU ListTree.pac</TD>
+		<TD>5</TD>
+	</TR>
+	<TR>
+		<TD>Added <A href="SpaceBreakdown.html">Space Breakdown</A></TD>
+		<TD>CU SpaceBreakdown.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD rowspan=4>
+			Upgraded four small packages from &ldquo;unpublished&rdquo;
+			and added them to <A href="Miscellanea.html">Miscellanea</A>.
+		</TD>
+		<TD>CU Abstract Collections.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU Always.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU Collection Adaptors.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>CU SortBlocks.pac</TD>
+		<TD>1</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2003-03-22</TD>
+		<TD>
+			<EM>Finally</EM> released my Smalltalk to Java bridge,
+			<A href="JNIPort.html">JNIPort</A>.  Whee!
+		</TD>
+		<TD>&ndash;</TD>
+		<TD>&ndash;</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=2>2003-02-20</TD>
+		<TD rowspan=2>
+			Minor changes to  the <A href="FMB.html">F.M.B.</A> and
+			<A href="ListTree.html">List Tree</A> to reflect the changed
+			sort algorithm in Dolphin 5.0.3.
+		</TD>
+		<TD>CU ListTree.pac</TD>
+		<TD>4</TD>
+	</TR>
+	<TR>
+		<TD>CU Filtering Method Browser.pac</TD>
+		<TD>5</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2003-02-07</TD>
+		<TD colspan=3>
+			I've started using David Gorisek's rather nice
+			<A href="http://www.gorisek.com/" target="_blank">STS</A>
+			product for source-code control, but that has required a change to
+			the way I name package versions.  I've revised this page to reflect
+			the new conventions.
+		</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=2>2003-01-10</TD>
+		<TD><A href="ListTree.html">List Tree</A> now uses the Model's SearchPolicy</TD>
+		<TD>CU ListTree.pac</TD>
+		<TD>3</TD>
+	</TR>
+	<TR>
+		<TD>Minor bugfix for the <A href="FMB.html">F.M.B.</A></TD>
+		<TD>CU Filtering Method Browser.pac</TD>
+		<TD>4</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2002-12-19</TD>
+		<TD>Bugfixes to <A href="ListTree.html">List Tree</A></TD>
+		<TD>CU ListTree.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2002-11-24</TD>
+		<TD>Added Varargs to <A href="Miscellanea.html">Miscellanea</A></TD>
+		<TD>CU Varargs.pac</TD>
+		<TD>1</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2002-11-19</TD>
+		<TD>Minor bugfix for the <A href="FMB.html">F.M.B.</A></TD>
+		<TD>CU Filtering Method Browser.pac</TD>
+		<TD>3</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2002-11-14</TD>
+		<TD>
+			Slight changes to how the <A href="FMB.html">F.M.B.</A> interprets
+			classes and methods as filters
+		</TD>
+		<TD>CU Filtering Method Browser.pac</TD>
+		<TD>2</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD rowspan=4>2002-11-01</TD>
+		<TD>Added this page and <A href="Miscellanea.html">Miscellanea</A></TD>
+		<TD>&ndash;</TD>
+		<TD>&ndash;</TD>
+	</TR>
+	<TR>
+		<TD>Added download link and prerequisites list to each page</TD>
+		<TD>&ndash;</TD>
+		<TD>&ndash;</TD>
+	</TR>
+	<TR>
+		<TD>Added RollingAccumulator to <A href="Miscellanea.html">Miscellanea</A></TD>
+		<TD>CU Rolling Accumulator.pac</TD>
+		<TD>1</TD>
+	</TR>
+	<TR>
+		<TD>
+			Published PackageRelativeFileLocator (now in
+			<A href="Miscellanea.html">Miscellanea</A>)
+		</TD>
+		<TD>CU Package-relative File Locator.pac</TD>
+		<TD>1</TD>
+	</TR>
+<!-- ========================== -->
+	<TR>
+		<TD>2002-10-30</TD>
+		<TD>Opened site</TD>
+		<TD>&ndash;</TD>
+		<TD>&ndash;</TD>
+	</TR>
+<!-- ========================== -->
+
+</TBODY>
+</TABLE>
+<!--	real-text-ends-here	--></TD>
+</TR>
+</TBODY>
+</TABLE>
+<HR>
+<P><SMALL>Copyright &copy; Chris Uppal, 2003-2005</SMALL></P>
+</BODY>
