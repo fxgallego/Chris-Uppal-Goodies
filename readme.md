@@ -11,4 +11,6 @@ You use it at your own risk.
 So you can pretty-much use it for what you like, provided you are honest about it. 
 
 See [Documentation](Docs/index.html)
+
+All contributions to Dolphin Smalltalk should be MIT licensed.
  
